@@ -177,6 +177,37 @@ HTML_TEMPLATE = """
 </html>
 """
 
+
+import re
+
+
+def protect_math(text):
+    """
+    Replaces math blocks with placeholders to prevent Markdown parsing.
+    Returns the protected text and a dictionary of placeholders to original math.
+    """
+    math_content = {}
+    
+    # Function to replace and store match
+    def replace(match):
+        key = f"MATHBLOCK{len(math_content)}X"
+        math_content[key] = match.group(0)
+        return key
+
+    # Protect $$...$$ (Display Math) - allow multiline
+    text = re.sub(r'(?ms)\$\$[^\$]+\$\$', replace, text)
+    
+    # Protect $...$ (Inline Math) - match non-greedy, no multiline usually for inline
+    text = re.sub(r'(?<!\$)\$(?!\$)[^\$]+\$(?!\$)', replace, text)
+    
+    return text, math_content
+
+def restore_math(text, math_content):
+    """Restores math blocks from placeholders."""
+    for key, value in math_content.items():
+        text = text.replace(key, value)
+    return text
+
 def generate_report(md_path, html_path, title):
     if not os.path.exists(md_path):
         print(f"Error: Markdown file not found at {md_path}")
@@ -185,11 +216,17 @@ def generate_report(md_path, html_path, title):
     with codecs.open(md_path, 'r', encoding='utf-8') as f:
         md_content = f.read()
 
+    # Protect Math
+    protected_content, math_store = protect_math(md_content)
+
     # Convert Markdown to HTML
     html_content = markdown.markdown(
-        md_content,
+        protected_content,
         extensions=['fenced_code', 'tables', 'nl2br', 'sane_lists']
     )
+
+    # Restore Math
+    html_content = restore_math(html_content, math_store)
 
     # Fill template
     final_html = HTML_TEMPLATE.format(

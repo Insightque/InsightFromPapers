@@ -1,0 +1,13 @@
+{
+    "title": "Multi-Objective Reinforcement Learning for Efficient Tactical Decision Making for Trucks in Highway Traffic",
+    "description": "MO-PPO 기반 다목적 강화학습을 통해 안전성, 연비, 시간 효율성 간의 파레토 최적 상최를 실시간으로 조정하는 자율주행 트럭 전용 전술적 의사결정 프레임워크를 제안함.",
+    "date": "2026-02-16",
+    "badges": [
+        "MORL",
+        "Autonomous Driving",
+        "Heavy-Duty Trucks"
+    ],
+    "badge_class": "badge-rl",
+    "report_file": "Multi_Objective_Reinforcement_Learning_for_Efficient_Tactical_Decision_Making_for_Trucks_in_Highway_Traffic_논문_분석_보고서.html",
+    "paper_file": "Multi_Objective_Reinforcement_Learning_for_Efficient_Tactical_Decision_Making_for_Trucks_in_Highway_Traffic_paper.pdf"
+}

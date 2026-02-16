@@ -1,0 +1,11 @@
+{
+    "title": "LA3T*: Real-time Motion Planning",
+    "description": "Paradigm shift from global path prediction to sequential committed trajectory prediction for efficient anytime planning in autonomous driving.",
+    "date": "2026-02-16",
+    "badges": [
+        "Motion Planning"
+    ],
+    "badge_class": "badge-control",
+    "report_file": "LA3T_논문_분석_보고서.html",
+    "paper_file": "LA3T_paper.pdf"
+}

@@ -1,4 +1,10 @@
-<!DOCTYPE html>
+import os
+import json
+import glob
+from datetime import datetime
+
+# HTML Template
+HTML_TEMPLATE = """<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -241,112 +247,7 @@
 
     <main class="container">
         <div class="grid">
-            
-            <article class="card">
-                <div class="card-header">
-                    <div>
-                        <span class="badge badge-control">Motion Planning</span>
-                    </div>
-                    <span class="date">2026-02-16</span>
-                </div>
-                <h2 class="card-title">LA3T*: Real-time Motion Planning</h2>
-                <p class="card-desc">
-                    Paradigm shift from global path prediction to sequential committed trajectory prediction for efficient anytime planning in autonomous driving.
-                </p>
-                <div class="card-actions">
-                    <a href="2026-02-16_LA3T_Real_Time_Motion_Planning/LA3T_논문_분석_보고서.html" class="btn btn-primary">
-                        <i class="fas fa-file-code"></i> Web Report
-                    </a>
-                    <a href="2026-02-16_LA3T_Real_Time_Motion_Planning/LA3T_paper.pdf" class="btn btn-outline" target="_blank">
-                        <i class="fas fa-book"></i> Paper
-                    </a>
-                </div>
-            </article>
-
-            <article class="card">
-                <div class="card-header">
-                    <div>
-                        <span class="badge badge-rl">Continuous Control</span>
-                    </div>
-                    <span class="date">2026-02-16</span>
-                </div>
-                <h2 class="card-title">Deep Deterministic Policy Gradient (DDPG)</h2>
-                <p class="card-desc">
-                    Foundational algorithm for continuous control deep RL, utilizing Actor-Critic architecture and deterministic policy gradients.
-                </p>
-                <div class="card-actions">
-                    <a href="2026-02-16_DDPG_Continuous_Control_with_Deep_RL/DDPG_논문_분석_보고서.html" class="btn btn-primary">
-                        <i class="fas fa-file-code"></i> Web Report
-                    </a>
-                    <a href="2026-02-16_DDPG_Continuous_Control_with_Deep_RL/DDPG_paper.pdf" class="btn btn-outline" target="_blank">
-                        <i class="fas fa-book"></i> Paper
-                    </a>
-                </div>
-            </article>
-
-            <article class="card">
-                <div class="card-header">
-                    <div>
-                        <span class="badge badge-marl">PMORL</span>
-                    </div>
-                    <span class="date">2026-02-16</span>
-                </div>
-                <h2 class="card-title">Preference-based Multi-Objective RL</h2>
-                <p class="card-desc">
-                    Learning to align with human preferences in multi-objective settings using preference-conditioned policies.
-                </p>
-                <div class="card-actions">
-                    <a href="2026-02-16_Preference-based_Multi-Objective_Reinforcement_Learning/PMORL_논문_분석_보고서.html" class="btn btn-primary">
-                        <i class="fas fa-file-code"></i> Web Report
-                    </a>
-                    <a href="2026-02-16_Preference-based_Multi-Objective_Reinforcement_Learning/PMORL_paper.pdf" class="btn btn-outline" target="_blank">
-                        <i class="fas fa-book"></i> Paper
-                    </a>
-                </div>
-            </article>
-
-            <article class="card">
-                <div class="card-header">
-                    <div>
-                        <span class="badge badge-marl">LLM Optimization</span>
-                    </div>
-                    <span class="date">2026-02-16</span>
-                </div>
-                <h2 class="card-title">MORL for LLM Optimization: Visionary Perspective</h2>
-                <p class="card-desc">
-                    Reinforcement Learning with Multi-Objectives for optimizing Large Language Models (LLMs) in efficiency, safety, and performance.
-                </p>
-                <div class="card-actions">
-                    <a href="2026-02-16_MORL_for_LLM_Optimization/MORL_LLM_논문_분석_보고서.html" class="btn btn-primary">
-                        <i class="fas fa-file-code"></i> Web Report
-                    </a>
-                    <a href="2026-02-16_MORL_for_LLM_Optimization/MORL_LLM_paper.pdf" class="btn btn-outline" target="_blank">
-                        <i class="fas fa-book"></i> Paper
-                    </a>
-                </div>
-            </article>
-
-            <article class="card">
-                <div class="card-header">
-                    <div>
-                        <span class="badge badge-marl">MORL</span>
-                    </div>
-                    <span class="date">2026-02-16</span>
-                </div>
-                <h2 class="card-title">C-MORL: Efficiency Discovery of Pareto Front</h2>
-                <p class="card-desc">
-                    Scalable Multi-Objective RL using a novel 2-stage Constrained Policy Optimization approach. Linear complexity with respect to objectives.
-                </p>
-                <div class="card-actions">
-                    <a href="2026-02-16_CMORL_Multi_Objective_RL/CMORL_논문_분석_보고서.html" class="btn btn-primary">
-                        <i class="fas fa-file-code"></i> Web Report
-                    </a>
-                    <a href="2026-02-16_CMORL_Multi_Objective_RL/CMORL_paper.pdf" class="btn btn-outline" target="_blank">
-                        <i class="fas fa-book"></i> Paper
-                    </a>
-                </div>
-            </article>
-
+            {cards_html}
         </div>
     </main>
 
@@ -383,3 +284,96 @@
 </body>
 
 </html>
+"""
+
+CARD_TEMPLATE = """
+            <article class="card">
+                <div class="card-header">
+                    <div>
+                        {badges_html}
+                    </div>
+                    <span class="date">{date}</span>
+                </div>
+                <h2 class="card-title">{title}</h2>
+                <p class="card-desc">
+                    {description}
+                </p>
+                <div class="card-actions">
+                    <a href="{folder}/{report_file}" class="btn btn-primary">
+                        <i class="fas fa-file-code"></i> Web Report
+                    </a>
+                    {paper_link}
+                </div>
+            </article>
+"""
+
+def generate_badges(badges, badge_class):
+    html = ""
+    for badge in badges:
+        html += f'<span class="badge {badge_class}">{badge}</span>'
+    return html
+
+def main():
+    base_dir = os.getcwd()
+    # List directories that start with a year (e.g., 2026)
+    dirs = [d for d in os.listdir(base_dir) if os.path.isdir(os.path.join(base_dir, d)) and d[0].isdigit()]
+    
+    # Sort folders by date descending (assumes YYYY-MM-DD prefix)
+    dirs.sort(key=lambda x: x.split('_')[0], reverse=True)
+
+    cards_html = ""
+
+    print(f"Found {len(dirs)} project directories in {base_dir}")
+
+    for d in dirs:
+        meta_path = os.path.join(base_dir, d, "metadata.json")
+        if not os.path.exists(meta_path):
+            print(f"Skipping {d}: metadata.json not found.")
+            continue
+        
+        with open(meta_path, 'r', encoding='utf-8') as f:
+            try:
+                meta = json.load(f)
+            except json.JSONDecodeError:
+                print(f"Error decoding JSON in {meta_path}")
+                continue
+
+        print(f"Processing {meta['title']}...")
+
+        badge_class = meta.get('badge_class', 'badge-rl')
+        # Ensure badge_class is valid if empty
+        if not badge_class:
+            badge_class = 'badge-rl'
+            
+        badges_html = generate_badges(meta.get('badges', []), badge_class)
+        
+        paper_link = ""
+        # Check if paper file is specified and exists
+        if 'paper_file' in meta and meta['paper_file']:
+             paper_path = os.path.join(base_dir, d, meta['paper_file'])
+             if os.path.exists(paper_path):
+                 paper_link = f"""<a href="{d}/{meta['paper_file']}" class="btn btn-outline" target="_blank">
+                        <i class="fas fa-book"></i> Paper
+                    </a>"""
+        
+        card = CARD_TEMPLATE.format(
+            badges_html=badges_html,
+            date=meta['date'],
+            title=meta['title'],
+            description=meta['description'],
+            folder=d,
+            report_file=meta['report_file'],
+            paper_link=paper_link
+        )
+        cards_html += card
+
+    final_html = HTML_TEMPLATE.replace("{cards_html}", cards_html)
+
+    output_path = os.path.join(base_dir, "index.html")
+    with open(output_path, "w", encoding="utf-8") as f:
+        f.write(final_html)
+    
+    print(f"Successfully rebuilt index.html at {output_path}")
+
+if __name__ == "__main__":
+    main()

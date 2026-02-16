@@ -1,0 +1,11 @@
+{
+    "title": "MORL for LLM Optimization: Visionary Perspective",
+    "description": "Reinforcement Learning with Multi-Objectives for optimizing Large Language Models (LLMs) in efficiency, safety, and performance.",
+    "date": "2026-02-16",
+    "badges": [
+        "LLM Optimization"
+    ],
+    "badge_class": "badge-marl",
+    "report_file": "MORL_LLM_논문_분석_보고서.html",
+    "paper_file": "MORL_LLM_paper.pdf"
+}

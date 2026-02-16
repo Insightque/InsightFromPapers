@@ -1,0 +1,11 @@
+{
+    "title": "Preference-based Multi-Objective RL",
+    "description": "Learning to align with human preferences in multi-objective settings using preference-conditioned policies.",
+    "date": "2026-02-16",
+    "badges": [
+        "PMORL"
+    ],
+    "badge_class": "badge-marl",
+    "report_file": "PMORL_논문_분석_보고서.html",
+    "paper_file": "PMORL_paper.pdf"
+}

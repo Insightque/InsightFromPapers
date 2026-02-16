@@ -1,0 +1,9 @@
+{
+    "title": "C-MORL: Efficiency Discovery of Pareto Front",
+    "description": "Scalable Multi-Objective RL using a novel 2-stage Constrained Policy Optimization approach. Linear complexity with respect to objectives.",
+    "date": "2026-02-16",
+    "badges": ["MORL"],
+    "badge_class": "badge-marl",
+    "report_file": "CMORL_논문_분석_보고서.html",
+    "paper_file": "CMORL_paper.pdf"
+}

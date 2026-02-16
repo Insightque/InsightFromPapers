@@ -1,0 +1,11 @@
+{
+    "title": "Deep Deterministic Policy Gradient (DDPG)",
+    "description": "Foundational algorithm for continuous control deep RL, utilizing Actor-Critic architecture and deterministic policy gradients.",
+    "date": "2026-02-16",
+    "badges": [
+        "Continuous Control"
+    ],
+    "badge_class": "badge-rl",
+    "report_file": "DDPG_논문_분석_보고서.html",
+    "paper_file": "DDPG_paper.pdf"
+}

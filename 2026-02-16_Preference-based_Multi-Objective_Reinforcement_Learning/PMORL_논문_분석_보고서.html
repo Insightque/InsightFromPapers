@@ -1,0 +1,327 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analysis Report</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;1,300&family=Pretendard:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- MathJax Configuration -->
+    <script>
+    MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']],
+        processEscapes: true
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+      }
+    };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    
+    <style>
+        :root {
+            --bg-color: #ffffff;
+            --text-color: #333333;
+            --heading-color: #111111;
+            --link-color: #0066cc;
+            --code-bg: #f5f5f5;
+            --border-color: #eaeaea;
+            --quote-border: #0066cc;
+            --table-header-bg: #f8f9fa;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #1a1a1a;
+                --text-color: #e0e0e0;
+                --heading-color: #ffffff;
+                --link-color: #66b3ff;
+                --code-bg: #2d2d2d;
+                --border-color: #444444;
+                --quote-border: #66b3ff;
+                --table-header-bg: #333333;
+            }
+        }
+
+        body {
+            font-family: 'Merriweather', serif; /* 본문은 Serif로 가독성 확보 */
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.8;
+            margin: 0;
+            padding: 2rem;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .container {
+            max-width: 800px; /* 적절한 폭 제한 */
+            margin: 0 auto;
+            padding-bottom: 5rem;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Pretendard', sans-serif; /* 헤딩은 Sans-serif */
+            color: var(--heading-color);
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+
+        h1 { font-size: 2.5rem; border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem; }
+        h2 { font-size: 1.8rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.3rem; }
+        h3 { font-size: 1.4rem; }
+
+        a { color: var(--link-color); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+
+        code {
+            font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+            background-color: var(--code-bg);
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+
+        pre {
+            background-color: var(--code-bg);
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            border: 1px solid var(--border-color);
+        }
+        
+        pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+
+        blockquote {
+            margin: 1.5rem 0;
+            padding-left: 1rem;
+            border-left: 4px solid var(--quote-border);
+            color: var(--text-color);
+            font-style: italic;
+            opacity: 0.9;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+        }
+
+        th, td {
+            border: 1px solid var(--border-color);
+            padding: 0.75rem;
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--table-header-bg);
+            font-weight: 600;
+        }
+        
+        img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        hr {
+            border: 0;
+            border-top: 1px solid var(--border-color);
+            margin: 2rem 0;
+        }
+
+        /* Print Style */
+        @media print {
+            body { 
+                background-color: white; 
+                color: black; 
+                font-family: serif;
+            }
+            .container { 
+                max-width: 100%; 
+                padding: 0;
+            }
+            a { text-decoration: none; color: black; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 id="preference-based-multi-objective-reinforcement-learning-pb-morl">기술 백서: Preference-based Multi-Objective Reinforcement Learning (Pb-MORL)</h1>
+<hr />
+<h3 id="paper-title-core-technology">[Paper Title / Core Technology]</h3>
+<p><strong>Preference-based Multi-Objective Reinforcement Learning</strong></p>
+<hr />
+<h3 id="1-architectural-philosophy">1. 설계 철학 및 문제 정의 (Architectural Philosophy)</h3>
+<p><strong>기존 기술의 임계점 (Legacy Bottleneck):</strong>
+- <strong>근본 원인 (Root Cause):</strong> 기존 Multi-Objective RL (MORL)은 각 목표(Objective)들에 대한 <strong>스칼라 보상 함수(Scalar Reward Function)</strong>가 사전에 완벽하게 정의되어 있다고 가정함.
+- <strong>치명적 한계 (Critical Failure):</strong> 현실 세계의 복잡한 다목적 문제(예: 자율주행의 안전 vs 승차감 vs 속도)를 <strong>단순한 수치적 보상</strong>으로 표현하는 것은 불가능에 가까움. 잘못 설계된 보상 함수는 <strong>Reward Hacking</strong>이나 <strong>Oversimplification</strong>을 초래하여, 실제 의도와 다른 괴상한 정책을 유도함.
+- <strong>패러다임 전환 (Paradigm Shift):</strong> 본 논문은 "보상 함수 설계"라는 난제를 우회하기 위해, 인간의 <strong>선호(Preference)</strong> 데이터를 직접 활용하여 <strong>명시적인 다목적 보상 모델(Explicit Multi-Objective Reward Model)</strong>을 학습하는 <strong>Pb-MORL</strong> 프레임워크를 제안함. 이를 통해 복잡한 보상 설계 없이도 파레토 최적(Pareto Optimal) 정책을 학습할 수 있음을 증명함.</p>
+<p><strong>개념 시각화 (Conceptual Analogy):</strong></p>
+<blockquote>
+<p><strong>[Analogy]</strong> 요리 대회에서 심사위원이 "소금 3g, 설탕 5g"처럼 정확한 점수 기준(Reward Function)을 주는 것이 아니라, 두 요리를 먹어보고 "A가 B보다 낫다"는 선호(Preference)만 표현하면, 요리사(Agent)가 그 선호 패턴을 학습하여 최고의 요리(Optimal Policy)를 만들어내는 것과 같음.</p>
+</blockquote>
+<hr />
+<h3 id="2-mathematical-formalism">2. 수학적 원리 및 분류 (Mathematical Formalism)</h3>
+<p><strong>시스템 분류 (System Taxonomy):</strong>
+- <strong>아키텍처 유형:</strong> Preference-based Multi-Objective Reinforcement Learning (Pb-MORL)
+- <strong>알고리즘 기반:</strong> Envelope Q-Learning (EQL) + Bradley-Terry Preference Model
+- <strong>불변 특성:</strong> Pareto Optimality Guarantee (Under Condition of Consistent Preferences)</p>
+<p><strong>핵심 수식 및 상세 해설 (Core Formulation &amp; Breakdown):</strong></p>
+<p><strong>1. Bradley-Terry Preference Model:</strong>
+$$ P_\psi[\sigma_1 \succ \sigma_0 | w] = \frac{\exp(\sum \gamma^t w^T \hat{r}_\psi(s_1, a_1))}{\sum_{i \in \{0, 1\}} \exp(\sum \gamma^t w^T \hat{r}_\psi(s_i, a_i))} $$</p>
+<ul>
+<li><strong>Variable Definition (변수 정의):</strong></li>
+<li>$P_\psi$: 학습된 보상 모델 $\hat{r}_\psi$를 기반으로 한 선호 확률 예측기</li>
+<li>$\sigma_0, \sigma_1$: 비교 대상이 되는 두 궤적(Trajectory Segment)</li>
+<li>$w$: 선호 판단의 기준이 되는 가중치 벡터 (Weight Vector). $w \in \mathbb{R}^m$, $\sum w_i = 1$.</li>
+<li>$\hat{r}_\psi(s, a)$: 파라미터 $\psi$로 학습되는 <strong>명시적 다목적 보상 모델 (Vector)</strong></li>
+<li>
+<p>$\succ$: 선호 관계 (Preferred over)</p>
+</li>
+<li>
+<p><strong>Physical Meaning (수식의 물리적 의미):</strong></p>
+</li>
+<li>두 궤적 간의 선호 확률은 각 궤적의 <strong>누적 보상(학습된 보상 모델 값)의 지수 함수적 비율</strong>로 결정된다. 즉, 학습된 보상 모델 $\hat{r}_\psi$의 합이 클수록 더 선호될 확률이 높게 모델링된다. 이는 선호 데이터를 통해 역으로 보상 함수를 추정할 수 있게 해주는 핵심 연결 고리이다.</li>
+</ul>
+<p><strong>2. Cross-Entropy Loss (Reward Learning):</strong>
+$$ L(\psi) = - \mathbb{E}_{(\sigma_0, \sigma_1, w, p) \sim D} \left[ p \log P_\psi[\sigma_1 \succ \sigma_0 | w] + (1-p) \log P_\psi[\sigma_0 \succ \sigma_1 | w] \right] $$</p>
+<ul>
+<li><strong>Variable Definition:</strong></li>
+<li>$p$: 실제 인간(또는 교사)의 선호 레이블 (0, 0.5, 1)</li>
+<li>
+<p>$D$: 수집된 선호 데이터셋</p>
+</li>
+<li>
+<p><strong>Physical Meaning:</strong></p>
+</li>
+<li>예측된 선호 확률 $P_\psi$와 실제 선호 $p$ 사이의 차이(엔트로피)를 최소화한다. 이를 통해 보상 모델 $\hat{r}_\psi$는 인간의 선호 판단 기준을 모사하게 된다.</li>
+</ul>
+<p><strong>3. Multi-Objective Q-Learning (Policy Optimization):</strong>
+$$ J(\pi) = \mathbb{E}_{w \sim D_w} \left[ w^T Q(s, a, w) \right] $$
+- <strong>Physical Meaning:</strong>
+  - 학습된 보상 모델 $\hat{r}_\psi$를 통해 계산된 $Q$ 값을 최대화하는 방향으로 정책을 업데이트한다. 여기서 $Q$ 값은 다목적 벡터이며, 가중치 $w$와의 내적을 통해 스칼라화된 효용(Utility)을 극대화한다.</p>
+<hr />
+<h3 id="3-execution-pipeline">3. 실행 파이프라인 및 데이터 흐름 (Execution Pipeline)</h3>
+<p><strong>입력 명세 (Trace Spec):</strong>
+- <strong>Input Context:</strong> State Vector <code>[Batch, State_Dim]</code>, Weight Vector <code>[Batch, Objective_Dim]</code>
+  - <em>예시: <code>s=[10.5, 3.2]</code>, <code>w=[0.7, 0.3]</code> (속도 중시형)</em></p>
+<p><strong>순전파 로직 (Forward Propagation Logic):</strong></p>
+<ol>
+<li>
+<p><strong>Preference Query &amp; Collection:</strong></p>
+<ul>
+<li><strong>Action:</strong> 에이전트가 환경과 상호작용하여 궤적 쌍 $(\sigma_0, \sigma_1)$ 생성.</li>
+<li><strong>Feedback:</strong> 교사(Teacher)가 가중치 $w$ 하에서 선호 $p$를 제공.</li>
+<li><strong>Data Storage:</strong> <code>Buffer</code> $\leftarrow$ <code>(\sigma_0, \sigma_1, w, p)</code></li>
+</ul>
+</li>
+<li>
+<p><strong>Reward Model Forward:</strong></p>
+<ul>
+<li><strong>Input:</strong> Segment $\sigma$ (State-Action Sequence)</li>
+<li><strong>Process:</strong> Neural Network $\psi$가 각 $(s,a)$에 대해 벡터 보상 $\hat{r}_\psi(s,a)$ 출력.</li>
+<li><strong>Aggregation:</strong> $P_\psi$0 계산하여 Segment Utility 산출.</li>
+<li><strong>Output:</strong> Preference Probability $P_\psi$1</li>
+</ul>
+</li>
+<li>
+<p><strong>Policy Forward (EQL):</strong></p>
+<ul>
+<li><strong>Input:</strong> State $P_\psi$2, Weight $P_\psi$3</li>
+<li><strong>Process:</strong> Q-Network $P_\psi$4가 다목적 Q-Value $P_\psi$5 예측.</li>
+<li><strong>Selection:</strong> $P_\psi$6를 통해 행동 선택.</li>
+</ul>
+</li>
+</ol>
+<hr />
+<h3 id="4-optimization-dynamics">4. 학습 메커니즘 및 최적화 (Optimization Dynamics)</h3>
+<p><strong>역전파 역학 (Backpropagation Dynamics):</strong></p>
+<ul>
+<li><strong>Step 1: Reward Model Update (보상 학습)</strong></li>
+<li><strong>Principle:</strong> Cross-Entropy Loss 최소화.</li>
+<li><strong>Purpose:</strong> 보상 모델 $P_\psi$7가 인간의 선호 판단과 일치하도록 조정.</li>
+<li>
+<p><strong>Data Example:</strong> 실제 선호가 $P_\psi$8인데 모델이 $P_\psi$9를 선호한다고 예측(확률 0.8)했다면, 큰 Loss 발생 $\hat{r}_\psi$0 $\hat{r}_\psi$1의 보상을 높이고 $\hat{r}_\psi$2의 보상을 낮추는 방향으로 Gradient 발생.</p>
+</li>
+<li>
+<p><strong>Step 2: Relabeling (데이터 갱신)</strong></p>
+</li>
+<li><strong>Principle:</strong> Off-policy Learning을 위한 데이터 재가공.</li>
+<li>
+<p><strong>Purpose:</strong> 과거에 수집된 궤적들의 보상 값을 현재 시점의 학습된 보상 모델 $\hat{r}_\psi$3 값으로 덮어씌움(Relabeling). 이를 통해 정책 학습이 최신 보상 모델을 반영하도록 함.</p>
+</li>
+<li>
+<p><strong>Step 3: Policy Update (정책 최적화 - EQL)</strong></p>
+</li>
+<li><strong>Principle:</strong> Bellman Error Minimization.</li>
+<li><strong>Equation:</strong> $\hat{r}_\psi$4, where $\hat{r}_\psi$5.</li>
+<li><strong>Purpose:</strong> 학습된(가상의) 보상 $\hat{r}_\psi$6를 최대화하는 행동을 학습.</li>
+</ul>
+<p><strong>알고리즘 구현 (Pseudocode Strategy on Pythonic Logic):</strong></p>
+<pre><code class="language-python">def train_pbmorl():
+    # 1. Initialize Networks
+    reward_model = RewardNet()
+    policy = EQLAgent()
+    buffer = PreferenceBuffer()
+
+    for iteration in range(Max_Iter):
+        # 2. Collect Data &amp; Query Preference
+        segments = collect_segments(policy)
+        preferences = teacher.query(segments) # Human or Scripted feedback
+        buffer.add(segments, preferences)
+
+        # 3. Update Reward Model
+        for _ in range(Grad_Steps):
+            loss_r = compute_cross_entropy(reward_model, buffer.sample())
+            optimizer_r.step(loss_r)
+
+        # 4. Relabel &amp; Update Policy
+        replay_buffer.relabel_rewards(reward_model)
+        for _ in range(Policy_Steps):
+            loss_q = compute_bellman_error(policy, replay_buffer.sample())
+            optimizer_q.step(loss_q)
+</code></pre>
+<hr />
+<h3 id="5-details-constraints">5. 구현 상세 및 제약 사항 (Details &amp; Constraints)</h3>
+<p><strong>안정화 기법 (Stabilization Techniques):</strong>
+- <strong>Critical Component:</strong> <strong>Weight Conditioned Network</strong>와 <strong>Relabeling</strong>.
+- <strong>Justification:</strong> 가중치 $\hat{r}_\psi$7가 바뀔 때마다 별도의 모델을 학습하는 것은 비효율적임. $\hat{r}_\psi$8를 입력으로 받는 하나의 네트워크로 모든 선호 분포를 커버함. 또한, 보상 모델이 변하기 때문에 과거 데이터의 보상 값을 주기적으로 갱신(Relabeling)하지 않으면 정책 학습이 수렴하지 않음.</p>
+<p><strong>시스템 한계 (System Limitations):</strong>
+- <strong>Computational Complexity:</strong> 보상 모델 학습과 정책 학습이 번갈아 진행되므로, 단일 RL 대비 학습 시간이 증가함.
+- <strong>Resource Constraints:</strong> 대량의 선호 데이터(Query)가 필요할 수 있음. 인간 피드백 비용이 높은 경우 병목이 될 수 있음.</p>
+<hr />
+<h3 id="6-industrial-application">6. 산업 적용 전략 (Industrial Application)</h3>
+<p><strong>비즈니스 가치 (Business Value Proposition):</strong>
+- <strong>Operational Efficiency:</strong> 복잡한 공정 제어(예: 반도체 제조, 화학 플랜트)에서 전문가가 일일이 보상 함수를 코딩할 필요 없이, "이 결과가 저것보다 좋다"는 피드백만으로 제어기를 최적화할 수 있음.
+- <strong>Use Case:</strong>
+  - <strong>스마트 그리드:</strong> 에너지 효율 vs 안정성 vs 비용 균형 조절.
+  - <strong>헬스케어:</strong> 환자의 고통 최소화 vs 치료 효과 극대화 (정량화하기 힘든 지표).
+  - <strong>개인화 추천:</strong> 사용자마다 다른 선호 가중치($\hat{r}_\psi$9)를 실시간으로 반영하여 추천 로직 변경.</p>
+<hr />
+<h3 id="7-validation-agent-self-correction">7. 검증 및 누락 점검 (Validation Agent - Self-Correction)</h3>
+<p><strong>Missing Information Check:</strong>
+- [x] <strong>Core Equations:</strong> Bradley-Terry Model, Cross-Entropy Loss, EQL Objective 포함됨.
+- [x] <strong>Key Algorithms:</strong> Reward Learning $\sigma_0, \sigma_1$0 Relabeling $\sigma_0, \sigma_1$1 Policy Update 루프 포함됨.
+- [x] <strong>Theorems:</strong> 본문에는 자세한 증명 과정생략되었으나, "Theorem 4 (보상 모델 최적화와 파레토 최적화의 동치성)"의 의미는 1절과 2절에 반영됨.</p>
+<p><strong>Final Polish:</strong>
+- 기술적 인과관계("Why &amp; How")를 중심으로 서술되었으며, 모호한 표현을 배제함.</p>
+        <hr>
+        <p style="text-align: center; font-size: 0.8rem; color: #888;">
+            Generated by <b>Antigravity AI Assistant</b> on 2026-02-16 18:57:58
+        </p>
+    </div>
+</body>
+</html>

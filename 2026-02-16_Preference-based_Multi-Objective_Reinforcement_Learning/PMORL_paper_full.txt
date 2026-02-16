@@ -1,0 +1,1931 @@
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2021
+1
+Preference-based Multi-Objective
+Reinforcement Learning
+Ni Mu∗, Yao Luan∗, Qing-Shan Jia†
+Abstract—Multi-objective reinforcement learning (MORL) is a
+structured approach for optimizing tasks with multiple objectives.
+However, it often relies on pre-defined reward functions, which
+can be hard to design for balancing conflicting goals and may
+lead to oversimplification. Preferences can serve as more flexible
+and intuitive decision-making guidance, eliminating the need for
+complicated reward design. This paper introduces preference-
+based MORL (Pb-MORL), which formalizes the integration of
+preferences into the MORL framework. We theoretically prove
+that preferences can derive policies across the entire Pareto
+frontier. To guide policy optimization using preferences, our
+method constructs a multi-objective reward model that aligns
+with the given preferences. We further provide theoretical proof
+to show that optimizing this reward model is equivalent to
+training the Pareto optimal policy. Extensive experiments in
+benchmark multi-objective tasks, a multi-energy management
+task, and an autonomous driving task on a multi-line highway
+show that our method performs competitively, surpassing the
+oracle method, which uses the ground truth reward function.
+This highlights its potential for practical applications in complex
+real-world systems.
+Note to Practitioners—Decision-making problems with multiple
+conflicting objectives are common in real-world applications,
+e.g., energy management must balance system lifespan, charge-
+discharge cycles, and energy procurement costs; autonomous
+driving vehicles must balance safety, speed, and passenger
+comfort. While multi-objective reinforcement learning (MORL)
+is an effective framework for these problems, its dependence
+on pre-defined reward functions can limit its application in
+complex situations, as designing a reward function often fails
+to capture the full complexity of the task fully. This paper
+introduces preference-based MORL (Pb-MORL), which utilizes
+user preference data to optimize policies, thereby eliminating the
+complexity of reward design. Specifically, we construct a multi-
+objective reward model that aligns with user preferences and
+demonstrate that optimizing this model can derive Pareto optimal
+solutions. Pb-MORL is effective, easy to deploy, and is expected
+to be applied in complex systems, e.g., multi-energy management
+through preference feedback and adaptive autonomous driving
+policies for diverse situations.
+Index Terms—Reinforcement learning, Multi-objective opti-
+mization, Preference-based optimization, Pareto efficiency.
+I. INTRODUCTION
+Multi-objective optimization is pervasive in real-world ap-
+plications [1]–[3]. For example, in an energy system, the goal
+N. Mu, Y. Luan and Q. Jia are with the Center for Intelligent and
+Networked System (CFINS), Department of Automation, Beijing National
+Research Center for Information Science and Technology, Beijing Key
+Laboratory of Embodied Intelligence Systems, Tsinghua University, Beijing
+100084, China, {mn23@mails., luany23@mails., jiaqs@}
+tsinghua.edu.cn. ∗N. Mu and Y. Luan contributed equally. †Q. Jia
+is the corresponding author.
+is to maximize the system lifespan and minimize charge-
+discharge cycles while simultaneously reducing energy pro-
+curement costs [4]. Autonomous vehicles need to provide safe,
+fast, and comfortable rides at the same time [5]. However,
+representing these objectives with a single reward can be dif-
+ficult and may lose important information [6]–[8]. In addition,
+creating a scalar reward function for each control objective is
+challenging and often results in oversimplification [9], [10].
+Preferences, conversely, offer a more flexible and general way
+to model the decision-making process [11]. Humans can easily
+provide their preferences, pointing out which outcome they
+prefer, without compressing all their decision-making infor-
+mation into a single reward function [12]. Therefore, it is of
+great practical interest to study multi-objective reinforcement
+learning based on preference.
+However, integrating multi-objective reinforcement learn-
+ing (MORL) with preference-based learning presents several
+challenges. First, while users can express preferences between
+pairs of behaviors when focusing on a single objective, es-
+tablishing a complete ordering among all behaviors is often
+difficult. This lack of a complete preference makes it hard
+for algorithms to assess the relative importance of different
+objectives. Additionally, there are often inherent conflicts
+between objectives, which complicate policy optimization.
+Furthermore, obtaining preferences for all objectives may
+require pairwise comparisons, which can be computationally
+inefficient as the number of objectives increases, leading to
+increased complexity in the querying process. Given these
+complexities, a significant gap lies in the previous work:
+To the best knowledge of the authors, we did not find any
+method addressing the above challenges of combining MORL
+and preference-based optimization, highlighting the need for a
+novel approach to multi-objective, preference-driven decision-
+making problems.
+A. Related Work
+Single-objective reinforcement learning with preference.
+Reinforcement learning (RL) [13] has gained significant atten-
+tion in recent years due to its remarkable success in solving
+challenging problems [14]–[19]. Traditional RL algorithms
+often rely on a pre-defined reward function, which serves as
+the guidance for policy optimization. However, designing such
+a reward function can be complex and even impractical [9].
+However, there are two typical categories of RL problems
+where we face difficulty obtaining the optimal policy. The first
+category of RL problems has a pre-defined reward function,
+such as cost savings [20], reducing carbon emissions [21],
+arXiv:2507.14066v1  [cs.LG]  18 Jul 2025
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2021
+2
+Replay buffer
+Reward learning 
+from preferences
+Update policy with a MORL algorithm
+Sample segment 
+pair (𝜎0, 𝜎1)
+Teacher
+provide preference
+𝑝= 𝑃𝜎0 ≻𝒘′ 𝜎1
+Sample weight 𝒘′
+Reward model
+ො𝒓𝜓
+Policy
+𝜋𝜙(𝑎|𝑠, 𝒘)
+Env without
+reward
+Interact under 
+given weight 𝒘
+Collect transitions 
+(𝑠, 𝑎, 𝑠′, 𝒘)
+Label estimated reward
+(𝑠, 𝑎, 𝑠′, ො𝒓𝜓(𝑠, 𝑎|𝒘), 𝒘)
+Store transitions
+Model update
+Data collection
+Fig. 1.
+A demonstration of the proposed Pb-MORL framework. An explicit multi-objective reward model ˆrψ is learned using preference data. Then, the
+multi-objective policy πϕ(a|s, w) can be updated through any MORL algorithm based on the reward model. In this figure, w denotes the weight vector,
+(σ0, σ1) denotes the segment pair, p denotes the preference provided by the teacher. A detailed introduction to the settings and notations will be provided in
+the following sections.
+or sparse rewards like a “+1” bonus for reaching the goal
+in a maze [22]. The challenge in this category is identify-
+ing the optimal policy, as task dynamics are often complex
+and stochastic, while sparse reward signals complicate policy
+learning from the reward function [23]. The second category
+consists of RL problems where defining the reward function
+is challenging, such as in robotics systems [9] and large
+language models [24]. In these cases, while we want the sys-
+tem behaviors to align with human expectations, formalizing
+the objective function is often difficult [9]. Preference-based
+reinforcement learning (PbRL) provides a solution by utilizing
+user feedback to guide agent behavior, making it suitable
+for both categories of RL problems. This approach offers
+preferences that may be more accessible and more naturally
+aligned with policy optimization than traditional reward sig-
+nals. Early works of PbRL, such as [11] and [12], have shown
+the ability of agents to learn from simple comparisons between
+pairs of trajectory segments, thereby eliminating the necessity
+for complex reward engineering. With the development of
+deep learning, techniques like pre-training [6], [25], [26] and
+data augmentation [27] are employed to improve learning
+efficiency. Meta-learning approaches [28] also enable agents
+to adapt to new tasks based on past experiences quickly.
+Moreover, PbRL has been successfully applied to fine-tune
+large-scale language models like GPT-3 for challenging tasks,
+as highlighted by [29]. While PbRL omits reward engineering
+through leveraging user feedback, it primarily deals with
+single-objective optimization instead of multi-objective pref-
+erence modeling.
+Multi-objective reinforcement learning with explicit
+reward functions. Multi-objective reinforcement learning
+(MORL) is a pivotal subfield of reinforcement learning [30]–
+[32], focusing on decision-making problems under multiple
+objectives. Envelope Multi-objective Q-learning [33] extends
+the traditional Q-learning algorithm to the multi-objective
+domain and proves the convergence of its Q-learning algorithm
+in tabular settings. Expected Utility Policy Gradient (EUPG)
+[34] and Prediction-Guided MORL (PGMORL) [35] further
+integrate deep learning into MORL. EUPG incorporates policy
+gradients to balance current and prospective returns, while
+PGMORL applies an evolutionary strategy to enhance the
+Pareto frontier. Additionally, Pareto Conditioned Networks
+[36] and Generalized Policy Improvement Linear Support
+[37] employ neural networks conditioned on target returns to
+predict optimal actions within deterministic settings. Despite
+their advancements, current MORL methods rely on pre-
+defined multi-objective reward functions, posing challenges
+for their application in real-world control scenarios. Extending
+preferences from single-objective reinforcement learning to
+multi-objective contexts is feasible, which is the main con-
+tribution of this paper.
+B. Main Contributions
+In
+this
+paper,
+we
+introduce
+Preference-based
+Multi-
+Objective Reinforcement Learning (Pb-MORL), which inte-
+grates preference modeling into Multi-Objective Reinforce-
+ment Learning (MORL), as illustrated in Fig. 1. Specifically,
+we first establish theorems that demonstrate a teacher pro-
+viding preferences can guide the learning of optimal multi-
+objective policies (Theorem 1, 2). Furthermore, we propose a
+method to construct an explicit multi-objective reward model
+that aligns with the teacher’s preferences. Our theoretical
+proof (Theorem 4) shows that, in a multi-objective context,
+if the reward function perfectly matches the teacher’s pref-
+erences, optimizing this reward is equivalent to learning the
+optimal policy. To implement Pb-MORL, we combine the
+Envelope Q Learning (EQL) method [33] with our proposed
+reward model. This implementation is simple yet effective,
+for EQL guarantees the convergence of policy optimization
+in multi-objective tasks. To demonstrate the effectiveness of
+our method, we conduct experiments in benchmark multi-
+objective reinforcement learning tasks. The results show that
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2021
+3
+TABLE I
+NOTATION TABLE
+Symbol
+Definition
+Description
+Multi-Objective RL Elements
+m
+Number of objectives
+Dimension of the reward vector.
+r(s, a)
+True multi-objective reward vector
+r(s, a) ∈Rm: Ground truth reward signal provided by the environment for each objective.
+w
+Weight vector
+w ∈W = {w ∈Rm | wi ≥0, P
+i wi = 1}: Vector encoding the relative importance
+(preference) assigned to each objective.
+W
+Weight space
+Set of all valid weight vectors.
+Dw
+Prior weight distribution
+Distribution over the weight space W from which weights are sampled during training or
+evaluation. In this study, we assume this distribution to be uniform over W.
+Π
+Policy space
+Set of all possible policies.
+Π∗
+Pareto optimal policy set
+Set of policies that are not dominated by any other policy in Π with respect to all objectives.
+Preference Elements
+σ
+Trajectory segment
+Finite sequence of state-action pairs: σ = {sk, ak, . . . , sk+H−1, ak+H−1} of length H.
+H
+Segment length
+Number of steps in a trajectory segment σ.
+p
+Preference label
+p ∈{0, 0.5, 1}: Human teacher’s preference judgment for a pair of segments (σ0, σ1) under
+weight w. p = 0: σ0 preferred, p = 1: σ1 preferred, p = 0.5: no preference/indifferent.
+σ0 ≻w σ1
+Preference relation
+Segment σ0 is strictly preferred over segment σ1 under weight w.
+Learned Components
+ˆrψ(s, a)
+Learned multi-objective reward model
+ˆrψ(s, a) ∈Rm: Model parameterized by ψ, trained using preference data to approximate
+the underlying objectives. Used as the reward signal for MORL policy optimization.
+πϕ(a∥s, w)
+Parameterized policy
+Stochastic policy parameterized by ϕ, conditioned on the current state s and the weight
+vector w (indicating the desired objective trade-off). Outputs a distribution over actions.
+Qθ(s, a, w)
+Multi-objective Q-function
+Qθ(s, a, w) ∈Rm: State-action value function parameterized by θ. Estimates the vector of
+expected discounted future rewards for each objective, starting from state s, taking action a,
+and following policy πϕ(·∥·, w) thereafter.
+J
+Optimization objective
+Scalarized expected return: J = Ew∼Dw,τ∼(P,π)[wT P
+t γtˆrψ(st, at)] (Eq. 7).
+Maximized during policy learning using the learned reward model.
+our approach achieves performance levels comparable to the
+oracle method, which uses the ground truth reward function to
+learn the optimal policy. To validate our method’s applicability
+in real-world scenarios, we evaluate our method on both a
+multi-energy management task and an autonomous driving
+task on a multi-line highway. In both settings, the Pb-MORL
+algorithm outperforms the oracle, showing its potential for
+practical implementation in complex, real-world environments.
+Through this work, we aim to broaden the applications of
+MORL in real-world settings, by employing preferences as a
+more accessible and intuitive optimization guidance.
+The main contributions of this paper are as follows:
+• We establish theorems for preference-based optimiza-
+tion in multi-objective settings, demonstrating that a
+preference-based teacher can guide the learning of op-
+timal multi-objective policies (Theorem 1, 2, 4).
+• We introduce Pb-MORL, which develops an explicit
+multi-objective reward model that aligns with preference
+data through the construction of the Bradley-Terry model
+and the optimization of the cross-entropy loss function. In
+addition, we combine the EQL algorithm with the reward
+model to achieve a simple yet effective implementation
+of Pb-MORL.
+• We conduct experiments in multi-objective benchmark
+tasks, a multi-energy management task, and an au-
+tonomous driving task on a multi-line highway, showing
+that Pb-MORL performs comparably to the oracle method
+using ground truth reward functions. It demonstrates Pb-
+MORL’s potential for real-world applications.
+The remaining sections are organized as follows. In Section
+II, we introduce preliminaries and the problem formulation.
+In Section III, we present the theoretical guarantees of Pb-
+MORL and propose the specific algorithm for explicit reward
+modeling and policy optimization. In Section IV, we describe
+the experimental setting and discuss the experimental results.
+Finally, we conclude the paper in Section V.
+II. PROBLEM FORMULATION
+In this section, we first introduce the multi-objective MDP
+and Q-learning in multi-objective settings, then formulate the
+Pb-MORL framework.
+A. MDP and Q-learning in Multi-Objective Settings
+For single-objective settings, an MDP with discrete time,
+infinite-stage discounted reward, and finite or countable state
+and action spaces could be characterized as a tuple M =
+⟨S, A, P, r, γ⟩. Here, S is the state space, A is the action space,
+and P(s′|s, a) : S × A × S →[0, 1] is the one-step state
+transition probability of transiting from s to s′ by taking action
+a. Besides, r(s, a) : S ×A →R defines the immediate reward
+of taking action a under state s, and R denotes the set of
+real numbers. Finally, γ ∈(0, 1) is the discount factor for
+balancing immediate and long-term rewards.
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2021
+4
+For multi-objective settings, the MDP framework is ex-
+tended to include multiple reward functions. The reward
+function can be represented as a vector r(s, a) : S×A →Rm,
+where m is the number of objectives. In the case of linear
+reward combination, the overall reward is defined by a lin-
+ear combination of these objectives, rw(s, a) = wT r(s, a),
+where w ∈W is the weight vector, and the weight space
+W = {w|w ∈Rm, wi ≥0, P wi = 1}. The goal in
+the multi-objective MDP is to find a policy π(a|s, w) :
+S × W × A →[0, 1] that maximizes the inner product of
+the multi-dimensional discounted return and the weight vector
+w, that is,
+max J = E
+w∼Dw
+τ∼(P,π(·|·,w))
+wT X
+τ
+γtr(st, at),
+(1)
+where τ denotes the trajectory, and under Dw is a prior weight
+distribution. Denote the policy space as Π.
+Then, the Q-learning algorithm can be adapted to the
+multi-objective setting. The standard Q-Learning [13], [38]
+for single-objective RL is based on the Bellman optimality
+operator B:
+(BQ)(s, a) := r(s, a) + sup
+a′ γEs′∼P (·|s,a)Q(s′, a′).
+(2)
+Following the previous work [33], we extend this to the
+MORL setting, by considering multi-objective Q-value func-
+tions Q(s, a, w) : S×A×W →Rm, which estimates expected
+total vector rewards under state s, action a and m-dimensional
+weight w. It is important to note that the parameter w in the
+Q function represents that the Q value is under the policy
+π(·|·, w), because the policies conditioning on different weight
+vectors w results in different behaviors, and the corresponding
+Q functions can vary.
+We define the distance between two multi-objective Q
+functions Q1, Q2 as follows:
+d(Q1, Q2) := sup
+s,a,w
+wT (Q1(s, a, w) −Q2(s, a, w))
+ . (3)
+The metric d forms a complete pseudo-metric space, as the
+identity of indiscernibles [39] does not hold.
+With a little abuse of notation, we use the same Bπ and B as
+in the single-objective RL to represent the Bellman operator in
+the multi-objective setting. Specifically, given a policy π and
+sampled trajectories τ, the multi-objective Bellman operator
+for policy evaluation Bπ is defined as:
+(BπQ)(s, a, w) := r(s, a) + γEτ∼(P,π)Q(s′, a′, w).
+(4)
+To construct the multi-objective Bellman optimality operator,
+an optimality filter H for the multi-objective Q function is first
+defined as:
+(HQ)(s, w) := argQ
+sup
+a∈A,w′∈W
+wT Q(s, a, w′),
+(5)
+where the arg Q takes the multi-objective value corresponding
+to the supremum (i.e., Q(s, a, w′) ) such that (a, w′) ∈
+arg supa∈A,w′∈W wT Q(s, a, w′)). Then, the multi-objective
+Bellman optimality operator B is defined as:
+(BQ)(s, a, w) := r(s, a) + γEs′∼P (·|s,a)(HQ)(s′, w)
+(6)
+Algorithm 1 Using the teacher to derive convex Pareto
+frontier, based on traversing the weight space
+1: Initialize the solution set Π∗= ∅
+2: for each w ∈W[Nw] do
+3:
+for each πi ∈Π do
+4:
+if ∄π′ ∈Π, π′ ̸= πi s.t. wT P
+(s,a)∼σi γtr(st, at) <
+wT P
+(s,a)∼σ′ γtr(st, at), where σi, σ′ are segments
+generated by πi, π′, then
+5:
+Π∗←Π∗∪{πi}
+6:
+end if
+7:
+end for
+8: end for
+9: return Π∗
+Intuitively, the optimality Bellman operator B solves the
+minimum convex envelope of the current Q frontier. Previous
+works of MORL [33] have provided proof of the convergence
+of the above multi-objective Q-learning algorithm, by proving
+the Bellman operator Bπ and B are both contrastive mappings
+under the metric d defined in Eq. (3).
+B. Pb-MORL Formulation
+For single-objective settings, by following the previous work
+[11], [12], we can define the preference in the form of tuple
+(σ0, σ1, p), where segment σ0, σ1 are sequences of states
+and actions {sk, ak, ..., sk+H−1, ak+H−1} with length H and
+arbitrary starting time k, and p ∈{0, 0.5, 1} encodes the
+preference relations:
+• σ0 strictly preferred to σ1 when p = 0.
+• σ1 strictly preferred to σ0 when p = 1.
+• Indeterminate preference (equivalence or ambiguous
+judgment) when p = 0.5.
+This scheme accounts for human rating uncertainty while
+maintaining annotation efficiency. When σ0 = σ1 or trajec-
+tories are equally preferable, p = 0.5 explicitly captures the
+uncertainty.
+For multi-objective settings, we redefine the preference as
+a tuple (σ0, σ1, w, p), where w ∈W is a weight vector.
+The preference p ∈{0, 0.5, 1} is a scalar which encodes
+preference relations under w, defined similarly as in the
+single-objective settings. In fact, given any weight vector,
+we introduce a complete ordering of the trajectory segments.
+However, we employ a pairwise comparison method due to
+practical constraints and use partial ordering notation (≻) in
+the following paper. Specifically, let σ0 ≻w σ1 means that
+trajectory segment σ0 is preferred over σ1 under the weight
+vector w. Then, the preference p can be written in the form
+of p = I(σ0 ≻w σ1), where I(·) is an indicator function that
+returns 1 if the condition is true, and 0 otherwise. As men-
+tioned earlier, the weight w represents the importance assigned
+to each objective within the multi-objective framework. The
+weight w is crucial in defining the multi-objective preference,
+as preferences can vary for the same trajectory pair depending
+on the weights.
+To align the problem formulation with the RL frame-
+work, we define an explicit multi-objective reward model
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2021
+5
+ˆr : S × A →Rm, where each dimension corresponds
+to a distinct objective. This reward model can be trained
+using preference data, serving as a bridge between qualitative
+preference and quantitative rewards. Based on this model,
+we propose the objective of Pb-MORL as finding a policy
+π(a|s, w) conditioned on the weight vector w. Specifically, the
+goal is to maximize the inner product between the conditioned
+weight and the discounted return of the reward model ˆr, under
+a prior weight distribution Dw, as Eq. (1) shows:
+max J = E
+w∼Dw
+τ∼(P,π(·|·,w))
+wT X
+τ
+γtˆr(st, at).
+(7)
+In the form of Q function, it can also be written as:
+max J = E
+w∼Dw
+(s0,a0)∼(P,π(·|·,w))
+wT Qπ(s0, a0, w|ˆr).
+(8)
+III. A PB-MORL ALGORITHM WITH EXPLICIT REWARD
+MODELING
+A. Theoretical Analysis
+In this subsection, we present the theoretical foundations of
+the Pb-MORL framework. We demonstrate how our approach
+ensures convergence to Pareto-optimal policies. To ease the
+proof, we discretize the weight space W to a finite space
+W[Nw] with size Nw, and assume that when Nw is large
+enough, W[Nw] could fully represent W, then induce the same
+set of optimal policies. We formalize this in Assumption 4.
+First, we assume the presence of preferences over pairs
+of trajectory segments with arbitrary finite length under an
+arbitrary given weight. To formalize this, we introduce the
+following assumption.
+Assumption 1. The preference p ∈{0, 0.5, 1} over a pair
+of trajectory segments (σ0, σ1) exists, with arbitrary finite
+segment length H, under an arbitrary given weight w ∈W.
+These preferences satisfy symmetry, consistency, and transi-
+tivity, which are defined as follows.
+Definition 1 (Symmetry). Symmetry means that if trajectory
+segment σ0 is preferred over σ1 under a weight vector w, then
+the opposite must also be true: σ1 is less preferred than σ0
+under the same weight. Formally, this is written as:
+σ0 ≻w σ1 =⇒σ1 ≺w σ0.
+(9)
+This ensures that preferences are reversible under the same
+weight vector.
+Definition 2 (Consistency). Consistency means that if σ0 ≻w
+σ1 holds for a given w, this preference remains unchanged
+over time. Formally, this is expressed as:
+σt0
+0 ≻w σt0
+1
+=⇒∀t > 0, σt
+0 ≻w σt
+1,
+(10)
+where σt denotes a trajectory segment starting from time t,
+i.e. σt = {st, at, · · · , st+H−1, at+H−1}. Here, σt0 and σt are
+segments with the same state action sequence (s, a, s′, · · · ),
+but starting from the different time.
+Definition 3 (Transitivity). Transitivity means that if the
+teacher prefers σ0 over σ1 and σ1 over σ2 under the same
+weight w, then the teacher must also prefer σ0 over σ2 under
+weight w. Formally, this is expressed as:
+(σ0 ≻w σ1) ∧(σ1 ≻w σ2) =⇒σ0 ≻w σ2.
+(11)
+This property ensures logical coherence of preferences across
+multiple trajectory segments. Thus, the teacher’s feedback does
+not contradict itself when extended to multiple comparisons.
+The symmetry, consistency, and transitivity requirements
+in Assumption 1 align with standard preference modeling in
+single-objective RL [9]. Then, we assume the presence of
+a perfect teacher, which can provide the preference over an
+arbitrary pair of trajectory segments with arbitrary finite length
+under an arbitrarily given weight.
+Assumption 2. We assume the existence of a teacher who can
+provide the preference feedback for two arbitrary trajectory
+segments (σ0, σ1), based on an arbitrary weight vector w.
+In Assumption 1 and 2, we assume that the teacher can
+provide preferences p ∈{0, 0.5, 1} over arbitrary pairs of
+segments (σ0, σ1) under a given weight w, and that these
+preferences satisfy symmetry, consistency, and transitivity. The
+assumption of preference availability under given weights is
+based on existing single-objective preference learning works
+[9], [27].
+This indicates that the teacher’s preferences are
+based on stable and consistent feedback related to the task
+objectives. Based on Assumption 1, it is reasonable to assume
+that the task has an underlying true reward, which is aligned
+with the teacher’s preferences. We formalize it in Assumption
+3. This assumption helps to establish a connection between
+the teacher’s preferences and policy optimization.
+Assumption 3. There exists a true reward function r for a
+certain multi-objective task, if there exists a teacher that can
+express preferences for this task. Furthermore, the value of
+the true weighted reward wT r is bounded by a constant rmax.
+Formally, this is written as:
+max
+w,s,a |wT r(s, a)| ≤rmax.
+(12)
+The above equation indicates that regardless of the chosen
+weight vector w, the absolute value of the weighted reward
+will not exceed this predefined upper limit.
+Assumption 3 is a common practice in existing works [40]–
+[42], as most real-world problems involve bounded rewards.
+By doing this, Assumption 3 prevents issues such as diver-
+gence in the reward function, thereby enabling Theorem 1, as
+discussed in the following paper.
+Assumption 4. The optimal policy π∗(a|s, w0) under weight
+w0 is also the optimal policy under weight w ∈{w|∥w −
+w0∥∞≤ϵ}, ∃ϵ > 0, ∀s ∈S, a ∈A, w0 ∈W.
+Assumption 4 is based on the assumption that the value
+function is continuous with respect to the weight vector w,
+which is reasonable and commonplace in industrial applica-
+tions.
+With Assumption 4, we could discretize the weight
+space W into a finite space W[Nw] of size Nw = |W|
+ϵm ≤ϵ−m,
+i.e. divide the weight space W to super cubes with side length
+ϵ. The optimal policies for weights within each super cube are
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2021
+6
+identical. Therefore, W[Nw] could fully represent W, as they
+induce the same set of optimal policies.
+Under Assumption 1, 2, 3 and 4, in the following theorems,
+we illustrate that the entire Pareto frontier could be obtained
+by a simple algorithm (Algorithm 1) using preferences given
+different weights. Specifically, we first prove that any optimal
+policy in an arbitrary given weight is in the Pareto frontier
+in Theorem 1. Then in Theorem 2, we prove that the optimal
+policies in all weights could form any convex Pareto frontier.
+Further, for non-convex Pareto frontiers, we prove the frontier
+could be obtained using preferences collected in designed
+weights in Theorem 3.
+Theorem 1. Each policy in the policy set π∗(a|s, w) ∈Π∗
+derived from Algorithm 1 is in the Pareto frontier when the
+segment length H →∞.
+Proof. We prove this theorem by contradiction. Suppose
+π∗(a|s, w) is not in the Pareto frontier. Then there must
+exist a policy π◦(a|s, w) ̸= π∗(a|s, w) which dominates
+π∗(a|s, w). And then there must exist a weight w0 and a pair
+of trajectories τ ◦and τ ∗which are generated from π◦(a|s, w)
+and π∗(a|s, w) respectively, and τ ◦≻w0 τ ∗. We extract
+segments of length H from τ ◦and τ ∗, denoted as σ◦and
+σ∗respectively. Under Assumption 1, the teacher can always
+output the true preference between two segments.
+Let s□
+t
+and a□
+t
+denote the state and action at time
+t in the trajectory τ □, where □is an arbitrary symbol.
+With discount factor γ, the difference between the dis-
+counted total return P∞
+t=0 γtwT
+0 r(st, at) and the truncated
+discounted total return PH−1
+t=0 γtwT
+0 r(st, at) is bounded,
+i.e. | P∞
+t=H γtwT
+0 r(st, at)|
+≤
+γH
+1−γ rmax. Let R¯t
+t(σ◦)
+=
+P¯t
+t=t γtwT
+0 r(s◦
+t , a◦
+t ), R¯t
+t(σ∗) = P¯t
+t=t γtwT
+0 r(s∗
+t , a∗
+t ), we
+have
+H−1
+X
+t=0
+γtwT
+0 r(s◦
+t , a◦
+t ) −
+H−1
+X
+t=0
+γtwT
+0 r(s∗
+t , a∗
+t ) ≥2 γH
+1 −γ rmax
+⇔RH−1
+0
+(σ◦) −RH−1
+0
+(σ∗) ≥2 γH
+1 −γ rmax
+≥|R∞
+H (σ◦)| + |R∞
+H (σ∗)| ≥R∞
+H (σ∗) −R∞
+H (σ◦)
+⇒R∞
+0 (σ◦) −R∞
+0 (σ∗) ≥0
+⇔
+∞
+X
+t=0
+γtwT
+0 r(s◦
+t , a◦
+t ) −
+∞
+X
+t=0
+γtwT
+0 r(s∗
+t , a∗
+t ) ≥0.
+Therefore, a sufficient condition that the preference be-
+tween two trajectories is consistent with the preference be-
+tween the two segments is that | PH−1
+t=0 γtwT
+0 r(s◦
+t , a◦
+t ) −
+PH−1
+t=0 γtwT
+0 r(s∗
+t , a∗
+t )| ≥2 γH
+1−γ rmax. This condition can al-
+ways be satisfied when H →∞, which means the true
+preference between two trajectories ( τ ◦≻w0 τ ∗) can always
+be obtained from the teacher. That contradicts Algorithm
+1 which only terminates when ∄π◦s.t. π◦≻w0 π∗and
+completes the proof.
+In practice, we typically select pairs of segments with
+distinct behaviors for human comparison, facilitating humans
+to provide preferences. Therefore, it is reasonable to assume
+Algorithm 2 Using the teacher to obtain non-convex Pareto
+frontier, based on insertion sort
+1: for each policy πi ∈Π do
+2:
+for each policy πj ∈Π do
+3:
+if for each wk ∈WI, wT
+k
+P
+(s,a)∼σi γtr(st, at) >
+wT
+k
+P
+(s,a)∼σj γtr(st, at), where σi, σj are segments
+generated by πi, πj, then
+4:
+Assign πi > πj
+5:
+end if
+6:
+end for
+7: end for
+8: Use insertion sort, obtain one or multiple biggest policies
+that there exists a minimum difference δ in discounted re-
+turns between any two segments, that is, ∃δ ≥0 such that
+| PH−1
+t=0 γtwT
+0 r1(st, at) −PH−1
+t=0 γtwT
+0 r2(st, at)| ≥δ > 0.
+Under this assumption, we derive the following Corollary 1.
+Corollary 1. If all segment pairs are distinct enough, i.e. ∃δ ≥
+0 s.t. | PH−1
+t=0 γtwT
+0 r(s1
+t, a1
+t) −PH−1
+t=0 γtwT
+0 r(s2
+t, a2
+t)| ≥δ >
+0 ∀σ1, σ2, then each policy in the policy set π∗(a|s, w) ∈Π∗
+derived from Algorithm 1 is in the Pareto frontier when the
+segment length H ≥logγ
+δ(1−γ)
+2rmax .
+Theorem 2. Algorithm 1 obtains the entire convex Pareto
+frontier, i.e., Π∗is the entire convex Pareto frontier.
+Proof. Since the Pareto frontier is convex, for each policy
+π∗on the Pareto frontier, there must exist a weight w s.t.
+wT ¯R
+∗≥wT ¯R
+′, where ¯R
+∗= Eπ
+P∞
+t=0 γtr(st, at) is the
+expected total discounted return derived by π∗, and ¯R
+′ is that
+derived by any other policies. Using Theorem 1, the optimal
+policy under weight w could be obtained by Algorithm 1.
+Therefore, by traversing w, we can traverse each policy on
+the Pareto frontier.
+Theorem 3. An arbitrary Pareto frontier could be completely
+obtained with preferences under every weight from an identity
+matrix weight set WI = {wi | [wi, · · · , wm] = I, i =
+1, · · · , m}.
+Proof. We prove it by providing a constructive Algorithm 2.
+If there is only one policy in the policy space Π, then it is
+the Pareto frontier.
+If we add a policy π′ into the current policy space Π, then
+π′ will be compared to all π ∈Π, specifically, compared to
+the current Pareto frontier π ∈Π∗and the non-Pareto frontier
+π ∈Π \ Π∗.
+If π′ is not in the Pareto frontier, then ∃π∗∈Π∗s.t.
+wT R(σ′) < wT R(σ∗) for all w ∈WI, where R(σ) =
+PH
+t=0,(st,at)∼σ γtr(st, at). Thus, through Algorithm 2, π′
+won’t be included in the new Pareto frontier.
+If π′ is in the Pareto frontier, then ∄π∗
+∈
+Π∗s.t.
+wT R(σ′) < wT R(σ∗) for all w ∈WI. Thus, through
+Algorithm 2, π′ will be included in the new Pareto frontier.
+That completes the proof.
+While linear weighting approaches (wT R) discover only
+the convex Pareto frontier as in Algorithm 2, Theorem 3
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2021
+7
+operates differently. By evaluating policies under unit vector
+weights WI via pairwise preference comparisons, we directly
+assess the Pareto dominance relationship. This allows iden-
+tification of non-convex Pareto-optimal policies. We provide
+another proof for Theorem 3 in Appendix A.
+The theoretical analysis above has demonstrated that
+the preference-based multi-objective reinforcement learning
+framework can converge to the Pareto optimal set under
+specific conditions, providing important guarantees on its
+performance. Based on these results, we will describe the
+detailed steps of the algorithm in the next subsection, showing
+how this framework can be applied to optimize multi-objective
+policies in practical scenarios.
+B. Multi-Objective Reward Modeling
+Based on the theoretical foundations established in the pre-
+vious section, we now focus on the practical implementation
+of Pb-MORL. In particular, we focus on constructing a multi-
+objective reward model that aligns with human preferences.
+By utilizing the preference data given by the teacher, we can
+develop an explicit reward model that captures the complexi-
+ties of human decision-making.
+Inspired by the previous work [11] in the single-objective
+scenario, we construct a preference predictor Pψ[σ0 ≻σ1|w],
+which is designed to predict the preference p given the pair
+of segments σ0 and σ1 under the weight w, and is parame-
+terized by ψ. The preference predictor Pψ can be trained by
+minimizing the cross-entropy loss:
+Lp = −
+E
+(σ0,σ1,w,p)∼D
+h
+p(0) log Pψ[σ0 ≻σ1|w]
++ p(1) log Pψ[σ1 ≻σ0|w]
+i
+.
+(13)
+Utilizing the Bradley-Terry model [11], [43], an explicit re-
+ward model ˆrψ can be constructed to predict the preference
+as follows:
+Pψ[σ1 ≻σ0|w] =
+exp P
+t γtwT ˆrψ(s1
+t, a1
+t)
+P
+i∈{0,1} exp P
+t γtwT ˆrψ(si
+t, ai
+t).
+(14)
+Eq. (14) models preferences as probabilistic outcomes, thereby
+accommodating the inherent ambiguity found in human judg-
+ments. Specifically, it suggests that the preference is exponen-
+tially related to the reward sum over the segment. Then, the
+reward model ˆrψ is trained to predict the preference under
+the weight w. Although the estimator ˆrψ is not inherently a
+binary classifier, the process of learning this estimator can be
+regarded as a binary classification, where the preferences p
+serve as the classification labels.
+In the previous discussion, we introduce how to leverage
+the preference data to construct a reward model. Theoretically,
+when the reward model r aligns perfectly with the teacher’s
+preferences, we can directly optimize this model to derive the
+optimal policy. To formalize this relationship, we present the
+following theorem:
+Theorem 4. If the reward model ˆr is perfectly aligned with
+the teacher’s preferences, that is, for segments (σ0, σ1) with
+arbitrary length H,
+σ0 ≻w σ1 ⇐⇒
+X
+(s,a)∼σ0
+γtwT ˆr(st, at) >
+X
+(s,a)∼σ1
+γtwT ˆr(st, at).
+(15)
+Since the segment length H can be arbitrarily long, the above
+equation is equivalent to
+π0 ≻w π1 ⇐⇒
+Eτ∼π0
+∞
+X
+t=0
+γtwT ˆr(st, at) > Eτ∼π1
+∞
+X
+t=0
+γtwT ˆr(st, at).
+(16)
+Then, under a given weight vector w, maximizing the dis-
+counted return
+J(π) =
+∞
+X
+t=0
+γtwT ˆr(st, at)
+(17)
+is equivalent to selecting the optimal policy π∗(·|·, w).
+Proof. For contradiction, assume that there exists another
+policy π′ that performs better than π∗under the weight vector
+w, i.e.,
+∞
+X
+t=0
+γtwT ˆr(s′
+t, a′
+t) >
+∞
+X
+t=0
+γtwT ˆr(s∗
+t , a∗
+t ),
+(18)
+where (s′
+t, a′
+t) and (s∗
+t , a∗
+t ) are from the trajectories generated
+by policies π′ and π∗, respectively. In this case, the teacher
+would prefer the trajectory of π′ over that of π∗.
+However, since the reward model r is perfectly aligned with
+the teacher, we have:
+π′ ≺w π∗=⇒
+∞
+X
+t=0
+γtwT ˆr(s′
+t, a′
+t) <
+∞
+X
+t=0
+γtwT ˆr(s∗
+t , a∗
+t ),
+(19)
+which contradicts the fact that π∗is the optimal policy under
+the reward model ˆr. Therefore, the assumption is false, and
+the theorem holds.
+C. MORL based on Multi-Objective Reward Model
+Having established the construction method of the reward
+model ˆrψ, we now focus on implementing the Pb-MORL
+algorithm. Specifically, we leverage the learned reward model
+as a substitute for the traditional reward function, enabling the
+direct application of existing MORL techniques.
+In typical MORL training process, the algorithm collects
+transitions (s, a, s′, r, w), which are composed of state s,
+action a, next state s′, multi-objective reward r and the
+weight vector w. These transitions are then utilized to update
+value functions and policies. In contrast, our method collects
+transitions where the reward r is replaced with the predicted
+reward from the model, ˆrψ. This allows us to align the policy
+with preference data by minimizing the loss as Eq. (13).
+This leads to a straightforward implementation of Pb-MORL.
+We first train the multi-objective reward model, followed by
+conducting MORL training based on this reward model.
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2021
+8
+0.00
+0.25
+0.50
+0.75
+1.00
+×106
+0
+2
+4
+6
+8
+0.00
+0.25
+0.50
+0.75
+1.00
+×106
+5.50
+5.75
+6.00
+6.25
+6.50
+0.00
+0.25
+0.50
+0.75
+1.00
+×106
+0.0
+0.2
+0.4
+0.6
+0.8
+0.00
+0.25
+0.50
+0.75
+1.00
+Timesteps
+×106
+0
+250
+500
+750
+1000
+0.00
+0.25
+0.50
+0.75
+1.00
+Timesteps
+×106
+2500
+5000
+7500
+10000
+12500
+0.00
+0.25
+0.50
+0.75
+1.00
+Timesteps
+×106
+0.0
+0.3
+0.6
+0.9
+1.2
+  EQL  
+Pb-MORL (ours)  
+  EQL  
+Pb-MORL (ours)  
+(a) Deep Sea Treasure
+(c) Resource Gathering
+(b) Fruit Tree
+Expected Utility
+Hypervolume
+Timesteps
+Timesteps
+Timesteps
+Fig. 2. The training curves of the expected utility and hypervolume on three multi-objective benchmark tasks. The experiments are conducted on 5 random
+seeds. Blue: the oracle method (EQL). Red: our method.
+However, directly using the reward model to train an MORL
+agent may potentially result in inefficient policy learning:
+1) Insufficient amount of preference data: To train a high-
+quality reward model, a substantial amount of preference
+data may need to be collected beforehand.
+2) Imprecise reward model: When the amount of preference
+data is insufficient, the reward model may overfit the
+limited training data, resulting in an imprecise reward
+model and consequently leading to suboptimal policy
+performance.
+Below are two techniques that can help improve sample
+efficiency and performance.
+• Continuous preference collection: Continuously gather
+preference data during training, which can enrich the
+training data of the reward model.
+• Relabeling: Relabel historical data with the updated re-
+ward model, which can increase the sample efficiency of
+preference and transition data.
+Based on the above techniques, we present Algorithm 3,
+which is a variant of the Pb-MORL approach discussed above.
+By integrating the Envelope multi-objective Q-learning (EQL)
+[33] into our learning process, Algorithm 3 achieves a simple
+yet effective approach for policy optimization. Specifically, in
+lines 3-13, the agent interacts with the environment to collect
+transition data. In lines 14-22, the multi-objective reward
+model is updated continuously during policy training. In line
+23, the rewards of the transition data in the replay buffer
+are relabeled. In lines 26-29, the Q-function and policy are
+updated using the EQL method.
+IV. EXPERIMENTAL RESULTS
+A. Setups
+In this section, we conduct several experiments to evaluate
+the effectiveness of the proposed method. We test Pb-MORL
+on several benchmark multi-objective tasks [33], [35], [44]
+to demonstrate its effectiveness across diverse multi-objective
+settings. Additionally, we evaluate Pb-MORL on a custom task
+for multi-energy storage system charging and discharging as
+well as an autonomous driving task on a multi-line highway,
+showing its potential for real-world industrial applications.
+Construction of the multi-objective teacher. Similar to
+prior PbRL works [9], [27], [45], in order to systemically
+evaluate the performance, we construct a “scripted teacher”,
+which provides preferences p between two trajectory segments
+σ0, σ1 under certain weight w according to the task’s ground
+truth reward function. The following paragraph formalizes the
+process used by the scripted teacher in multi-objective RL.
+Let rgt denote the task’s ground truth reward function.
+Then, for the segment pair (σ0, σ1), the scripted teacher first
+computes the discounted reward sum:
+Ri =
+H−1
+X
+t=0
+γtrgt(si
+t, ai
+t)
+i = 0, 1,
+(20)
+where γ is the discount factor, t is the time step, si
+t, ai
+t
+represents the state and action of segment σi in time step t,
+and H is the segment length. Next, the teacher computes the
+weighted inner product with the given weight vector w:
+Ri = wT Ri = wT
+ H−1
+X
+t=0
+γtrgt(si
+t, ai
+t)
+!
+i = 0, 1,
+(21)
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2021
+9
+Algorithm 3 Pb-MORL algorithm using the EQL method
+Input: Frequency of teacher feedback K, number of sampled
+segment Ns, number of sample weights Nw for reward
+learning, timesteps for learning start T0
+Output: Multi-objective reward model ˆrψ, multi-objective Q
+function Qθ, policy πϕ(·|·, w)
+1: Initialize parameter vectors ψ, θ, ϕ
+2: for each iteration do
+3:
+for each environment step t do
+4:
+Obtain current state st
+5:
+if global step < T0 then
+6:
+Randomly sample action at
+7:
+else
+8:
+Obtain action at ∼πϕ(·|st, w) under a weight w
+9:
+end if
+10:
+Obtain transition (st, at, st+1, w)
+11:
+Obtain multi-objective reward ˆr(st, at)
+12:
+Add (st, at, st+1, ˆr(st, at), w) into replay buffer D
+13:
+end for
+14:
+if iteration mod K == 0 then
+15:
+Sample Ns query (σ0, σ1) ∼D
+16:
+Sample Nw weights w
+17:
+Query overseer for preference p for all queries
+(σ0, σ1) under all w
+18:
+Store all Ns × Nw (σ0, σ1, w, p) to buffer Dp
+19:
+for each gradient step do
+20:
+Sample minibatch (σ0, σ1, w, p) ∼Dp
+21:
+Optimize Eq. (13) to update reward model ˆrψ
+22:
+end for
+23:
+Relabel entire replay buffer D using ˆrψ
+24:
+end if
+25:
+for each gradient step do
+26:
+Sample a minibatch from replay buffer D
+27:
+Update Q function Qθ by minimizing |Q −BQ|
+under (s, a, s′, r, w) ∼D, as Eq. (6)
+28:
+Update the Q-learning policy πϕ(·|·, w) by maximiz-
+ing wT Q(s, πϕ(·|s, w), w) under (s, a, s′, r, w) ∼
+D
+29:
+end for
+30: end for
+The scripted teacher compares R0 and R1 to determine which
+segment performs better:
+p =
+
+
+
+
+
+1,
+if R0 > R1,
+0.5,
+if R0 = R1,
+0,
+if R0 < R1.
+(22)
+Since the scripted teacher’s preferences directly correspond to
+the task’s ground truth reward, the algorithms can be quanti-
+tatively evaluated using the ground truth reward function.
+Evaluation metrics. We use two metrics to evaluate the
+empirical performance on each task:
+1) Expected Utility (EU) [30]: This metric measures the
+average utility under randomly sampled weights. Let w
+be a weight vector randomly sampled from the uniform
+distribution in W space. Let U(π, w) represent the
+TABLE II
+HYPERPARAMETER SETTINGS FOR PB-MORL
+Hyperparameter
+Value
+Preference frequency K
+500
+Number of sampled segment Ns
+300
+Number of sample weights Nw
+10
+Discount factor γ
+0.99
+Batch size
+256
+Learning rate
+3 × 10−4
+Training timesteps
+1 × 106
+Number of Q network hidden layers
+2
+Number of hidden units per layer
+128
+Q target update τ
+1 × 10−4
+Optimizer
+Adam
+utility function of policy π(·|·, w) under the weight w,
+which is usually the inner product of the discounted
+return and the weight w. The expected utility EU(π)
+is then defined as:
+EU(π) = EwU(π, w).
+(23)
+Expected Utility is crucial for evaluation, as it com-
+prehensively measures a policy’s overall performance
+across objectives. Unlike hypervolume [46], which fo-
+cuses on boundary solutions, EU evaluates the policy’s
+average behavior over the entire weight space. Thus, it
+serves as a more relevant indicator of general perfor-
+mance in many multi-objective tasks.
+2) Hypervolume (HV) [46] : Given an approximate Pareto
+Frontier set ˜F of multi-objective return and a reference
+point Rref, the hypervolume metric is defined as:
+HV(˜F, Rref) =
+[
+R∈˜F
+volume(Rref, R),
+(24)
+where volume(Rref, R) is the volume of the hypercube
+spanned by the reference vector Rref and the vector R.
+The reference point here is typically an estimation of
+the worst possible return for all objectives.
+Experimental details. For implementation details, for line
+12 of Algorithm 3, we use a query-policy aligned replay
+buffer to maintain an accurate reward model in the near-
+policy region [47]. For line 17, we use the scripted teacher
+mentioned earlier to generate preference data. The detailed
+hyperparameter settings of Pb-MORL are shown in Table II.
+For the baseline, we use EQL [33] as an oracle method, which
+leverages the ground truth reward function for policy learning.
+B. Experimental Results on Multi-Objective Benchmark Tasks
+Tasks.
+We evaluate our method on three multi-objective
+benchmark tasks [30], each presenting distinct challenges,
+such as balancing time-cost and total reward or optimizing
+independently across multiple objectives:
+• Deep Sea Treasure (DST) [48]: An agent controls a
+submarine in a 10×11 grid to discover treasures, bal-
+ancing time and treasure value. The grid contains 10
+treasures, with the value increasing with the distance from
+the starting point s0 = (0, 0). The multi-objective reward
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2021
+10
+4
+6
+8
+10
+12
+14
+16
+J1 + J2 + J3
+4
+6
+8
+10
+12
+14
+J4 + J5 + J6
+FT
+EQL
+Pb-MORL
+Fig. 3. Visualization of the estimated Pareto frontier of two methods in FT.
+Note that the actual Pareto frontier in FT has 6 dimensions, we add up the
+first 3 and last 3 dimensions of rewards for illustration.
+r(s, a) has two dimensions: r1(s, a) for treasure value
+and r2(s, a) for time cost, decreasing by 1 for each step.
+• Fruit Tree (FT) [33]: A full binary tree provides a six-
+dimensional reward r ∈R6 at each leaf, representing
+nutritional components: {PROTEIN, CARBS, FATS, VITA-
+MINS, MINERALS, WATER}. The agent maximizes utility
+for a given weight by selecting the optimal path from root
+to leaf while choosing between the left and right subtrees.
+• Resource Gathering (RG) [49]: An agent collects the
+gold or gem in a 5×5 grid while evading two enemies.
+Encountering an enemy in the same cell poses a 10% risk
+of death. The multi-objective reward r(s, a) has three
+dimensions: r1(s, a) = −1 if being killed, r2(s, a) =
++1 if safely returning home with gold, r3(s, a) = +1 if
+returning with gem.
+To justify the selection of H values for each task, we
+analyze their characteristics. For the DST task, where episode
+length varies and rewards accumulate over time, we choose
+H = 7 to capture the cumulative effects. In the FT task, with
+a fixed episode length of 6, H = 6 is suitable to encompass the
+full trajectory. For the RG task, which features sparse rewards
+and early episode termination, we select H = 10 to ensure
+enough steps are available to differentiate between policies.
+Figure 2 presents the expected utility and hypervolume re-
+sults for the three tasks. In the DST task, our method performs
+comparably to the oracle in expected utility, demonstrating
+consistent utility improvement over time. For the FT task, our
+method matches the oracle in expected utility and surpasses
+it in hypervolume, indicating effective use of preference for
+enhancing the Pareto frontier quality. In the RG task, while
+our method’s utility approaches optimal performance, the hy-
+pervolume results are less favorable. This may be because the
+returns of RG are limited to 0 or ±1, and the learned reward
+model exhibits imprecision in capturing edge-cases under
+these sparse rewards, which restricts hypervolume growth.
+To demonstrate the high quality of the Pareto frontier we
+learned, we visualized the Pareto frontier learned by EQL and
+our method in the FT task, as shown in Fig. 3. Our method
+captures the key factors of the Pareto frontier of the oracle
+method, showing its effectiveness for application in practice.
+0.00
+0.25
+0.50
+0.75
+1.00
+Timesteps
+×106
+−2000
+−1750
+−1500
+−1250
+−1000
+Expected Utility
+0.00
+0.25
+0.50
+0.75
+1.00
+Timesteps
+×106
+5.8
+6.1
+6.4
+6.7
+7.0
+Hypervolume
+×106
+  EQL  
+Pb-MORL (ours)  
+(a) Expected Utility
+(b) Hypervolume
+Fig. 4. The training curves of the expected utility and hypervolume on the
+energy system task, averaging over 5 random seeds. Blue: the oracle method
+(EQL). Red: our method.
+C. Experimental Results on the Custom Energy Task
+The multi-energy management task.
+To assess the
+potential of Pb-MORL for real-world industry applications,
+we designed a custom multi-objective task for multi-energy
+storage, simulating the charging and discharging of an energy
+storage system. The agent controls discharge and charge
+levels to satisfy external energy demands while balancing cost
+savings and system lifespan.
+• State space: The state space includes four scalar val-
+ues: Current stored energy sstorage (kWh), current energy
+generated from renewable sources snew (kWh), external
+energy demand sdemand (kWh), and the electricity market
+price sprice (monetary units). Thus, the state vector can
+be represented as:
+s = [sstorage, snew, sdemand, sprice].
+(25)
+• Action space: The action a is a scalar indicating the dis-
+charge level. Positive values represent energy discharged
+to meet external demand, while negative values indicate
+energy charged from renewable sources or the grid.
+• Transition: After a state transition, the new storage level
+is calculated as:
+sstorage,t+1 = min(smax
+storage, (sstorage,t −at)+),
+(26)
+where smax
+storage is the maximum capacity of the energy
+storage, and (·)+ denote max(·, 0).
+• Reward function: The reward is a two-dimensional
+vector, where the first dimension r1(st, at) penalizes
+the electricity purchasing cost. At each time step, the
+system may purchase energy to satisfy the external energy
+demand and charge the storage. The amount of energy
+bought for charging is
+gcharge =
+(
+(−a −(snew −sdemand)+)+
+a < 0
+(a −sstorage)+
+a ≥0 ,
+(27)
+and that for external demand is
+gdemand = ((sdemand −snew)+ −(a)+)+,
+(28)
+r1(st, at) is calculated as r1(st, at) = sprice × (gdemand +
+gcharge). The second dimension r2(st, at) indicates a
+penalty for discharging: r2(st, at) = −1 when energy is
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2021
+11
+discharged and 0 otherwise. This design aims to reduce
+discharges, thus prolonging the system’s lifespan.
+In this task, rewards are cumulative, with a maximum
+episode length of 50. Since the agent does not face failures
+leading to early termination, a sufficiently long H is critical
+for capturing long-term policy performance. Setting H = 10
+allows for comprehensive observation of cumulative returns,
+enabling effective differentiation among policy performances
+during optimization.
+Figure 4 presents the experimental results of the multi-
+energy management task. Our method surpasses the oracle
+method in expected utility. This can be attributed to the
+task’s inherent randomness and complex transition dynamics,
+which make it challenging to directly optimize task rewards
+like electricity costs or the lifespan loss of system charging.
+Instead, preference provides a more flexible way to guide
+policy optimization, allowing the policy to adapt to sys-
+tem complexities more effectively. Additionally, our method
+matches the oracle in the hypervolume metric.
+The weight-conditioned policy π(a|s, w) learned by Pb-
+MORL allows dynamic adaptation to changing user prefer-
+ences. For instance, in energy management, operators may
+prioritize cost reduction during peak pricing periods (w1 ↑)
+and system longevity during high-stress operations (w2 ↑).
+Since Pb-MORL trains a single policy conditioned on arbitrary
+weights w ∈W, adapting to such changes only requires
+modifying the input weight vector w at deployment, elimi-
+nating the need for policy retraining. Similarly, in autonomous
+driving in Section IV-D, safety weights can be adjusted during
+adverse weather by simply updating w. This adaptability
+minimizes operational overhead and enables Pb-MORL to
+respond instantly to evolving objectives, making it well-suited
+for dynamic environments with non-stationary preferences.
+0.0
+0.5
+1.0
+1.5
+2.0
+Timesteps
+×105
+5
+10
+15
+20
+25
+Expected Utility
+0.0
+0.5
+1.0
+1.5
+2.0
+Timesteps
+×105
+5
+10
+15
+20
+25
+0.0
+0.5
+1.0
+1.5
+2.0
+Timesteps
+×105
+0
+350
+700
+1050
+1400
+Hypervolume
+0.0
+0.5
+1.0
+1.5
+2.0
+Timesteps
+×105
+0
+350
+700
+1050
+1400
+  EQL  
+Pb-MORL (ours)  
+(a) H = 3
+(b) H = 6
+Fig. 5. The training curves of the expected utility and hypervolume on the
+highway task, averaging over 5 random seeds. Blue: the oracle method (EQL).
+Red: our method.
+D. Experimental Results on the Multi-Lane Highway Task
+The multi-lane highway task. To validate the effectiveness
+of our approach in real-world complex control scenarios, we
+evaluate it in a multi-lane highway task [30], [50]. In this
+task, the agent navigates a three-lane highway while driving
+as quickly as possible, avoiding collisions and prioritizing
+positioning in the rightmost lane. This setting comprehensively
+tests the agent’s ability to perform in dynamic and multi-
+faceted environments.
+• State space: The state is represented by a V × 5 matrix
+that includes the coordinates and speeds of the ego
+vehicle and V −1 surrounding vehicles. Each line consists
+of [presence of the vehicle, x coordinate, y coordinate, x
+velocity, y velocity].
+• Action space: Actions are categorized discretely as fol-
+lows: lane change to the left (0), maintaining the current
+state (1), lane change to the right (2), acceleration (3),
+and deceleration (4). These actions are integrated with a
+lower-level controller for speed and steering.
+• Transition: The vehicle kinematic is modeled using a
+simplified kinematic bicycle model, which assumes the
+left and right wheels function as a single wheel. It regards
+the front wheel as the primary steering control while
+omitting sliding effects, thus enabling a more straight-
+forward representation of vehicle dynamics. This model
+formulation captures the essential dynamics of real-world
+vehicle behavior, enhancing the simulation’s fidelity. The
+following equations describe the vehicle’s motion:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+˙x
+= v cos(θ + β),
+˙y
+= v sin(θ + β),
+˙v
+= a,
+˙θ
+= v
+lr tan(δ),
+β
+= arctan
+
+lr
+lf +lr tan(δ)
+
+.
+The surrounding vehicles are controlled by the Intelligent
+Driver Model (IDM) [51] and the Minimum Overall
+Braking Distance (MOBIL) model [52].
+• Reward function: The reward function comprises a
+three-dimensional vector. The first element represents
+speed reward, calculated as
+v−vmin
+vmax−vmin , where v is the
+current speed of the ego vehicle, and vmin and vmax
+denote the minimum and maximum allowable speeds,
+respectively. The second element indicates lane position
+reward, as 1 if the ego vehicle is in the rightmost lane
+and 0 otherwise. The third element is a collision penalty,
+assigned −1 upon collision and 0 otherwise.
+We selected H = 3 and H = 6 for our evaluation. H = 3
+corresponds to a low-level behavior over a 5-second period,
+while H = 6 represents longer driving behavior, allowing for
+a more comprehensive assessment of the agent’s performance.
+By evaluating our method with both time horizons, we obtain a
+more nuanced understanding of its capabilities across different
+driving scenarios. Following prior works [53], [54], we trained
+the agent for 200,000 steps.
+As shown in Figure 5, our method surpasses the oracle
+method regarding both expected utility and hypervolume.
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2021
+12
+In contrast to EQL, which experiences a significant perfor-
+mance decline after an initial increase followed by a slow
+recovery, our approach maintains stable performance without
+such setbacks. The initial drop in EQL may be because the
+agent becomes overly focused on immediate goals, such as
+speed, resulting in aggressive policies that often neglect safety.
+Consequently, when the negative impact of collision occurs,
+the agent must re-explore to find more stable policies. In con-
+trast, Pb-MORL addresses this overfitting through preference-
+driven reward learning. This method emphasizes the relative
+benefits of multiple objectives (e.g., “safe overtaking ≻ag-
+gressive overtaking”) rather than focusing on absolute value
+differences, enabling the reward model to learn the trade-
+offs of specific scenarios. Additionally, continuous preference
+feedback helps to recalibrate the reward model in three phases:
+balancing objectives, refining scene-specific policies and opti-
+mizing for long-tail risks. This approach effectively prevents
+oscillations caused by conflicting targets.
+In summary, Sections IV-C and IV-D demonstrate that our
+preference-guided policy outperforms the oracle across mul-
+tiple metrics and adapts more effectively to complex systems
+than direct task reward optimization. Additionally, the re-
+sulting multi-objective policies exhibit strong interpretability,
+clearly showing how weight vectors impact policy behavior.
+These findings underscore the potential of our approach for
+optimizing complex real-world systems.
+V. CONCLUSION
+This paper presents the preference-based multi-objective re-
+inforcement learning (Pb-MORL) algorithm, which leverages
+preference data to overcome the limitations of complicated
+reward design. Our contributions include a theoretical proof of
+optimality, showing the Pb-MORL framework can guide the
+learning of Pareto-optimal policies. In addition, we construct
+an explicit multi-objective reward model that directly aligns
+with user preferences, enabling more intuitive decision-making
+in complex scenarios. Extensive experiments demonstrate the
+effectiveness and interpretability of Pb-MORL in optimizing
+various types of multi-objective tasks. Through this work,
+we highlight the potential of preference-based frameworks in
+enhancing multi-objective optimization.
+Future research can explore several directions. First, we
+recognize that some assumptions in our work may not hold
+in practical scenarios. Specifically, for the symmetry, consis-
+tency, and transitivity requirements in Assumption 1, we can
+explore non-transitive cases through pairwise ranking methods
+[55] and utilize preference aggregation strategies to address
+violations of other properties. Second, Assumption 2 could
+be relaxed through active query strategies [26] that optimize
+comparison requests. Third, to expand its utility in complex
+systems, we aim to apply Pb-MORL to various domains, such
+as financial investment and smart manufacturing. Notably, we
+provide an alternative perspective in Appendix B, discussing
+the motivation for Pb-MORL, highlighting the impact of
+human subjectivity in preference data on learning quality in
+traditional PbRL.
+ACKNOWLEDGMENTS
+This work is supported by the Beijing Natural Science
+Foundation (L233005), NSFC (No. 62125304, 62192751),
+the
+National
+Key
+Research
+and
+Development
+Program
+of China (2022YFA1004600), the 111 International Col-
+laboration
+Project
+(B25027),
+and
+the
+BNRist
+project
+(BNR2024TD03003).
+APPENDIX A
+ADDITIONAL PROOF
+Another proof of Thm.3. We prove it by providing a construc-
+tive Algorithm 4.
+If policy πi is never added into Π∗, there must exists a
+policy πa a < i and wk ∈WI s.t. wT
+k r(σa) > wT
+k r(σj).
+Therefore πi is dominated by πa, thus not being in the Pareto
+frontier.
+If policy πi is added into Π∗, and removed when traversing
+πb, there must exists a wk ∈WI s.t. wT
+k r(σb) > wT
+k r(σj).
+Therefore πi is dominated by πb, thus not being in the Pareto
+frontier.
+If policy πi is added into Π∗, and remains in the Π∗. Assume
+there is πc dominates πi. If c > i, when traversing πc, πi must
+be in Π∗and be removed, which contradicts the algorithm. If
+c < i, πc or its dominator must be in Π∗when traversing πi,
+and πi must be removed, which also contradicts the algorithm.
+Therefore the assumption is false.
+Summarizing these all concludes the proof.
+Algorithm 4 Using the teacher to obtain non-convex Pareto
+frontier, based on insertion sort
+1: Initialize the estimated Pareto frontier Π∗= ∅
+2: for each policy πi ∈Π do
+3:
+for each policy πj ∈Π∗do
+4:
+if wT
+k R(σi) > wT
+k R(σj) for each wk ∈WI then
+5:
+Remove πj(a|s) from Π∗
+6:
+else if wT
+k R(σi) < wT
+k R(σj) for each wk ∈WI
+then
+7:
+break
+8:
+end if
+9:
+end for
+10:
+Add πi into Π∗
+11: end for
+APPENDIX B
+A DIFFERENT PERSPECTIVE ON PB-MORL MOTIVATION
+From a different perspective, our motivation for proposing
+Pb-MORL comes from the common issue of subjective bias in
+preference data, which exists in traditional PbRL and any ap-
+plication that relies on human expert preferences. For example,
+in autonomous driving, some people prefer aggressive driving
+that prioritizes efficiency, while others prefer safer, more
+cautious driving. Similarly, in large language models using
+RLHF (Reinforcement Learning from Human Feedback), the
+preferences assigned by different annotators often conflict due
+to personal biases. This subjectivity not only affects learning
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2021
+13
+quality but also makes it difficult for models to accommodate
+diverse needs.
+However, we believe that these scenarios can be reframed
+as multi-objective optimization problems. To address this, we
+propose Pb-MORL, which models the problem as a multi-
+objective optimization task. This approach learns a multi-
+objective policy that can effectively handle different weights
+w, enabling better use of preference data, improving learning
+quality, and meeting the diverse needs of individuals.
+REFERENCES
+[1] J.-H. Cho, Y. Wang, R. Chen, K. S. Chan, and A. Swami, “A survey
+on modeling and optimizing multi-objective systems,” IEEE Communi-
+cations Surveys & Tutorials, vol. 19, no. 3, pp. 1867–1901, 2017.
+[2] Z. Liu, X. Zhang, and B. Jiang, “Active learning with fairness-aware
+clustering for fair classification considering multiple sensitive attributes,”
+Information Sciences, vol. 647, p. 119521, 2023.
+[3] X. Guan, C. Song, Y.-C. Ho, and Q. Zhao, “Constrained ordinal opti-
+mization—a feasibility model based approach,” Discrete Event Dynamic
+Systems, vol. 16, no. 2, pp. 279–299, 2006.
+[4] H. R. Baghaee, M. Mirsalim, G. B. Gharehpetian, and H. Talebi,
+“Reliability/cost-based multi-objective pareto optimal design of stand-
+alone wind/pv/fc generation microgrid system,” Energy, vol. 115, pp.
+1022–1041, 2016.
+[5] X. He and C. Lv, “Toward personalized decision making for autonomous
+vehicles: a constrained multi-objective reinforcement learning tech-
+nique,” Transportation research part C: emerging technologies, vol. 156,
+p. 104352, 2023.
+[6] K. Lee, L. Smith, A. Dragan, and P. Abbeel, “B-pref: Benchmarking
+preference-based reinforcement learning,” in Thirty-fifth Conference on
+Neural Information Processing Systems Datasets and Benchmarks Track,
+2021.
+[7] F. Memarian, W. Goo, R. Lioutikov, S. Niekum, and U. Topcu, “Self-
+supervised online reward shaping in sparse-reward environments,” in
+2021 IEEE/RSJ International Conference on Intelligent Robots and
+Systems (IROS).
+IEEE, 2021, pp. 2369–2375.
+[8] P. Mannion, S. Devlin, J. Duggan, and E. Howley, “Reward shaping for
+knowledge-based multi-objective multi-agent reinforcement learning,”
+The Knowledge Engineering Review, vol. 33, p. e23, 2018.
+[9] K. Lee, L. M. Smith, and P. Abbeel, “Pebble: Feedback-efficient
+interactive reinforcement learning via relabeling experience and unsuper-
+vised pre-training,” in International Conference on Machine Learning.
+PMLR, 2021, pp. 6152–6163.
+[10] D. Dewey, “Reinforcement learning and the reward engineering princi-
+ple,” in 2014 AAAI Spring Symposium Series, 2014.
+[11] P. F. Christiano, J. Leike, T. Brown, M. Martic, S. Legg, and D. Amodei,
+“Deep reinforcement learning from human preferences,” Advances in
+neural information processing systems, vol. 30, 2017.
+[12] A. Wilson, A. Fern, and P. Tadepalli, “A bayesian approach for policy
+learning from trajectory preference queries,” Advances in neural infor-
+mation processing systems, vol. 25, 2012.
+[13] R. S. Sutton, A. G. Barto et al., Reinforcement learning: An introduction.
+MIT press Cambridge, 1998, vol. 1, no. 1.
+[14] V. Mnih, K. Kavukcuoglu, D. Silver, A. Graves, I. Antonoglou, D. Wier-
+stra, and M. Riedmiller, “Playing atari with deep reinforcement learn-
+ing,” arXiv preprint arXiv:1312.5602, 2013.
+[15] C. Chang, N. Mu, J. Wu, L. Pan, and H. Xu, “E-mapp: Efficient
+multi-agent reinforcement learning with parallel program guidance,” in
+Advances in Neural Information Processing Systems, 2022.
+[16] D. Silver, J. Schrittwieser, K. Simonyan, I. Antonoglou, A. Huang,
+A. Guez, T. Hubert, L. Baker, M. Lai, A. Bolton et al., “Mastering
+the game of go without human knowledge,” nature, vol. 550, no. 7676,
+pp. 354–359, 2017.
+[17] Y. Luan and Q.-S. Jia, “Simplify twin crane scheduling in railway yard
+by spatial task assignment,” in 2023 China Automation Congress (CAC).
+IEEE, 2023, pp. 3034–3039.
+[18] N. Mu, X. Hu, and Q.-S. Jia, “Large-scale data center cooling control
+via sample-efficient reinforcement learning,” in 2024 IEEE 20th Inter-
+national Conference on Automation Science and Engineering (CASE).
+IEEE, 2024.
+[19] Y. Luan, Q.-S. Jia, Y. Xing, Z. Li, and T. Wang, “An efficient real-
+time railway container yard management method based on partial de-
+coupling,” IEEE Transactions on Automation Science and Engineering,
+vol. 22, pp. 14 183–14 200, 2025.
+[20] N. Mu, X. Hu, and Q.-S. Jia, “Integrating mechanism and data: Rein-
+forcement learning based on multi-fidelity model for data center cooling
+control,” in 2023 China Automation Congress (CAC).
+IEEE, 2023, pp.
+5283–5288.
+[21] X. Guo, X. Zhang, and X. Zhang, “Incentive-oriented power-carbon
+emissions trading-tradable green certificate integrated market mecha-
+nisms using multi-agent deep reinforcement learning,” Applied Energy,
+vol. 357, p. 122458, 2024.
+[22] G. Brockman, “Openai gym,” arXiv preprint arXiv:1606.01540, 2016.
+[23] Y. Burda, H. Edwards, A. Storkey, and O. Klimov, “Exploration by
+random network distillation,” in International Conference on Learning
+Representations, 2018.
+[24] R. Rafailov, A. Sharma, E. Mitchell, C. D. Manning, S. Ermon, and
+C. Finn, “Direct preference optimization: Your language model is
+secretly a reward model,” Advances in Neural Information Processing
+Systems, vol. 36, 2024.
+[25] B. Ibarz, J. Leike, T. Pohlen, G. Irving, S. Legg, and D. Amodei,
+“Reward learning from human preferences and demonstrations in atari,”
+Advances in neural information processing systems, vol. 31, 2018.
+[26] N. Mu, Y. Luan, Y. Yang, and Q.-S. Jia, “S-epoa: Overcoming the
+indistinguishability of segments with skill-driven preference-based re-
+inforcement learning,” arXiv preprint arXiv:2408.12130, 2024.
+[27] J. Park, Y. Seo, J. Shin, H. Lee, P. Abbeel, and K. Lee, “Surf: Semi-
+supervised reward learning with data augmentation for feedback-efficient
+preference-based reinforcement learning,” in International Conference
+on Learning Representations, 2022.
+[28] D. J. Hejna III and D. Sadigh, “Few-shot preference learning for human-
+in-the-loop rl,” in Conference on Robot Learning.
+PMLR, 2023, pp.
+2014–2025.
+[29] N. Stiennon, L. Ouyang, J. Wu, D. Ziegler, R. Lowe, C. Voss, A. Rad-
+ford, D. Amodei, and P. F. Christiano, “Learning to summarize with
+human feedback,” Advances in Neural Information Processing Systems,
+vol. 33, pp. 3008–3021, 2020.
+[30] F. Felten, L. N. Alegre, A. Now´e, A. L. Bazzan, E.-G. Talbi, G. Danoy,
+and B. C. da Silva, “A toolkit for reliable benchmarking and research
+in multi-objective reinforcement learning,” in Proceedings of the 37th
+International Conference on Neural Information Processing Systems,
+2023, pp. 23 671–23 700.
+[31] C. F. Hayes, R. R˘adulescu, E. Bargiacchi, J. K¨allstr¨om, M. Macfarlane,
+M. Reymond, T. Verstraeten, L. M. Zintgraf, R. Dazeley, F. Heintz
+et al., “A practical guide to multi-objective reinforcement learning and
+planning,” Autonomous Agents and Multi-Agent Systems, vol. 36, no. 1,
+p. 26, 2022.
+[32] K. Li and H. Guo, “Human-in-the-loop policy optimization for
+preference-based multi-objective reinforcement learning,” arXiv preprint
+arXiv:2401.02160, 2024.
+[33] R. Yang, X. Sun, and K. Narasimhan, “A generalized algorithm for
+multi-objective reinforcement learning and policy adaptation,” in Pro-
+ceedings of the 33rd International Conference on Neural Information
+Processing Systems, 2019, pp. 14 636–14 647.
+[34] D. M. Roijers, D. Steckelmacher, and A. Now´e, “Multi-objective rein-
+forcement learning for the expected utility of the return,” in Proceedings
+of the Adaptive and Learning Agents workshop at FAIM, vol. 2018, 2018.
+[35] J. Xu, Y. Tian, P. Ma, D. Rus, S. Sueda, and W. Matusik, “Prediction-
+guided multi-objective reinforcement learning for continuous robot con-
+trol,” in International conference on machine learning.
+PMLR, 2020,
+pp. 10 607–10 616.
+[36] M. Reymond, E. Bargiacchi, and A. Now´e, “Pareto conditioned net-
+works,” in Proceedings of the 21st International Conference on Au-
+tonomous Agents and Multiagent Systems, 2022, pp. 1110–1118.
+[37] L. N. Alegre, A. L. Bazzan, D. M. Roijers, A. Now´e, and B. C.
+da Silva, “Sample-efficient multi-objective learning via generalized pol-
+icy improvement prioritization,” in Proceedings of the 2023 International
+Conference on Autonomous Agents and Multiagent Systems, 2023, pp.
+2003–2012.
+[38] C. J. Watkins and P. Dayan, “Q-learning,” Machine learning, vol. 8, pp.
+279–292, 1992.
+[39] A. W. Naylor and G. R. Sell, Linear operator theory in engineering and
+science.
+Springer Science & Business Media, 1982.
+[40] F. S. Melo, “Convergence of q-learning: A simple proof,” Institute Of
+Systems and Robotics, Tech. Rep, pp. 1–4, 2001.
+[41] K. Li and Q.-S. Jia, “Decentralized multi-agent reinforcement learning:
+An off-policy method,” 2021.
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2021
+14
+[42] K. Li, X. Jin, Q.-S. Jia, D. Ren, and H. Xia, “An ocba-based method
+for efficient sample collection in reinforcement learning,” IEEE Trans-
+actions on Automation Science and Engineering, vol. 21, no. 3, pp.
+3615–3626, 2024.
+[43] R. A. Bradley and M. E. Terry, “Rank analysis of incomplete block
+designs: I. the method of paired comparisons,” Biometrika, vol. 39, no.
+3/4, pp. 324–345, 1952.
+[44] N. Mu, Y. Luan, and Q.-S. Jia, “Preference-based multi-objective
+reinforcement learning with explicit reward modeling,” in 2024 China
+Automation Congress (CAC).
+IEEE, 2024.
+[45] N. Mu, H. Hu, X. Hu, Y. Yang, B. Xu, and Q.-S. Jia, “Clarify:
+Contrastive preference reinforcement learning for untangling ambigu-
+ous queries,” in Proceedings of the 42th International Conference on
+Machine Learning, 2025.
+[46] E. Zitzler, Evolutionary algorithms for multiobjective optimization:
+Methods and applications.
+Shaker Ithaca, 1999, vol. 63.
+[47] X. Hu, J. Li, X. Zhan, Q.-S. Jia, and Y.-Q. Zhang, “Query-policy mis-
+alignment in preference-based reinforcement learning,” in The Twelfth
+International Conference on Learning Representations, 2024.
+[48] P. Vamplew, R. Dazeley, A. Berry, R. Issabekov, and E. Dekker,
+“Empirical evaluation methods for multiobjective reinforcement learning
+algorithms,” Machine learning, vol. 84, pp. 51–80, 2011.
+[49] L. Barrett and S. Narayanan, “Learning all optimal policies with multiple
+criteria,” in Proceedings of the 25th international conference on Machine
+learning, 2008, pp. 41–47.
+[50] E. Leurent, “An environment for autonomous driving decision-making,”
+https://github.com/eleurent/highway-env, 2018.
+[51] M. Treiber, A. Hennecke, and D. Helbing, “Congested traffic states in
+empirical observations and microscopic simulations,” Physical review E,
+vol. 62, no. 2, p. 1805, 2000.
+[52] A. Kesting, M. Treiber, and D. Helbing, “General lane-changing model
+mobil for car-following models,” Transportation Research Record, vol.
+1999, no. 1, pp. 86–94, 2007.
+[53] L. Forneris, A. Pighetti, L. Lazzaroni, F. Bellotti, A. Capello, M. Cossu,
+and R. Berta, “Implementing deep reinforcement learning (drl)-based
+driving styles for non-player vehicles,” International Journal of Serious
+Games, vol. 10, no. 4, pp. 153–170, 2023.
+[54] H. Tian, K. Reddy, Y. Feng, M. Quddus, Y. Demiris, and P. Angeloudis,
+“Enhancing autonomous vehicle training with language model integra-
+tion and critical scenario generation,” arXiv preprint arXiv:2404.08570,
+2024.
+[55] H. Choi, S. Jung, H. Ahn, and T. Moon, “Listwise reward estimation
+for offline preference-based reinforcement learning,” in Forty-first Inter-
+national Conference on Machine Learning, 2024.

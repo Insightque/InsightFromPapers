@@ -1,0 +1,264 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analysis Report</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;1,300&family=Pretendard:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- MathJax Configuration -->
+    <script>
+    MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']],
+        processEscapes: true
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+      }
+    };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    
+    <style>
+        :root {
+            --bg-color: #ffffff;
+            --text-color: #333333;
+            --heading-color: #111111;
+            --link-color: #0066cc;
+            --code-bg: #f5f5f5;
+            --border-color: #eaeaea;
+            --quote-border: #0066cc;
+            --table-header-bg: #f8f9fa;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #1a1a1a;
+                --text-color: #e0e0e0;
+                --heading-color: #ffffff;
+                --link-color: #66b3ff;
+                --code-bg: #2d2d2d;
+                --border-color: #444444;
+                --quote-border: #66b3ff;
+                --table-header-bg: #333333;
+            }
+        }
+
+        body {
+            font-family: 'Merriweather', serif; /* 본문은 Serif로 가독성 확보 */
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.8;
+            margin: 0;
+            padding: 2rem;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .container {
+            max-width: 800px; /* 적절한 폭 제한 */
+            margin: 0 auto;
+            padding-bottom: 5rem;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Pretendard', sans-serif; /* 헤딩은 Sans-serif */
+            color: var(--heading-color);
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+
+        h1 { font-size: 2.5rem; border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem; }
+        h2 { font-size: 1.8rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.3rem; }
+        h3 { font-size: 1.4rem; }
+
+        a { color: var(--link-color); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+
+        code {
+            font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+            background-color: var(--code-bg);
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+
+        pre {
+            background-color: var(--code-bg);
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            border: 1px solid var(--border-color);
+        }
+        
+        pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+
+        blockquote {
+            margin: 1.5rem 0;
+            padding-left: 1rem;
+            border-left: 4px solid var(--quote-border);
+            color: var(--text-color);
+            font-style: italic;
+            opacity: 0.9;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+        }
+
+        th, td {
+            border: 1px solid var(--border-color);
+            padding: 0.75rem;
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--table-header-bg);
+            font-weight: 600;
+        }
+        
+        img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        hr {
+            border: 0;
+            border-top: 1px solid var(--border-color);
+            margin: 2rem 0;
+        }
+
+        /* Print Style */
+        @media print {
+            body { 
+                background-color: white; 
+                color: black; 
+                font-family: serif;
+            }
+            .container { 
+                max-width: 100%; 
+                padding: 0;
+            }
+            a { text-decoration: none; color: black; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 id="real-time-motion-planning-framework-with-learned-committed-trajectory-distribution">기술 백서: Real-time Motion Planning Framework with Learned Committed Trajectory Distribution</h1>
+<hr />
+<h3 id="paper-title-core-technology">[Paper Title / Core Technology]</h3>
+<p><strong>Real-time Motion Planning Framework for Autonomous Vehicles with Learned Committed Trajectory Distribution</strong> (Minsoo Kim et al., IROS 2023)</p>
+<hr />
+<h3 id="1-architectural-philosophy">1. 설계 철학 및 문제 정의 (Architectural Philosophy)</h3>
+<p><strong>기존 기술의 임계점 (Legacy Bottleneck):</strong>
+- <strong>비효율적 전역 예측 (Inefficient Global Bias):</strong> 기존의 학습 기반 모션 플래닝(Deep Learning-based Motion Planning)은 전체 최적 경로(Whole Optimal Path)를 한 번에 예측하여 샘플링 편향(Biasing)을 유도했다.
+- <strong>실시간성 괴리 (Real-time Mismatch):</strong> 그러나 <strong>Anytime Framework</strong>(실행과 계획을 동시에 수행)에서는 차량이 당장 실행할 경로(Committed Trajectory)가 가장 중요하다. 먼 미래의 경로까지 예측하는 것은 계산 자원을 낭비할 뿐만 아니라, 동적 환경이나 좁은 공간에서 부정확한 예측을 초래하여 오히려 수렴 속도를 저하시킨다.</p>
+<p><strong>패러다임 전환 (Paradigm Shift):</strong>
+- <strong>순차적 집중 (Sequential Focus):</strong> 본 논문은 전체 경로가 아닌, <strong>"차량이 당장 실행해야 할 다음 구간(Committed Trajectory)"</strong>만을 단계별로 예측하는 <strong>Learned Anytime Predictor</strong>를 제안한다.
+- <strong>Local-Optimization First:</strong> 전역적인 최적해를 한 번에 찾으려 하기보다, 실행 루프(Control Loop, approx 20ms) 내에서 가장 확실한 다음 스텝을 확률 분포로 예측하고 이를 기반으로 RRT*를 확장하여 실시간성과 정확성을 동시에 확보한다.</p>
+<p><strong>개념 시각화 (Conceptual Analogy):</strong></p>
+<blockquote>
+<p><strong>[Analogy]</strong> 짙은 안개 속에서 운전할 때, 집까지 가는 전체 경로를 모두 머릿속에 그리고 운전하는 것(기존 방식)은 불가능하고 위험하다. 대신, 헤드라이트가 비추는 <strong>"당장 앞 10미터"</strong>(Committed Trajectory)를 정확하게 파악하고 그 구간을 최적으로 통과하는 데 집중하는 것(제안 방식)이 훨씬 빠르고 안전하다.</p>
+</blockquote>
+<hr />
+<h3 id="2-mathematical-formalism">2. 수학적 원리 및 분류 (Mathematical Formalism)</h3>
+<p><strong>시스템 분류 (System Taxonomy):</strong>
+- <strong>알고리즘 계열:</strong> Sampling-based Motion Planning (RRT<em>)
+- </em><em>프레임워크:</em><em> Anytime Framework (Plan-with-Execution)
+- </em><em>학습 모델:</em>* CNN-based Encoder-Decoder (Lightweight)</p>
+<p><strong>핵심 수식 및 상세 해설 (Core Formulation &amp; Breakdown):</strong></p>
+<p><strong>1. Optimization Objective (Committed Trajectory Sequence):</strong>
+$$ \{\pi^*_{c,k}\} = \arg\min_{\{\pi_{c,k}\}} \sum_{q_s}^{q_g} \text{cost}(\pi_{c,k}) $$
+- <strong>Variable Definition:</strong>
+  - $\pi_{c,k}$: $k$번째 Committed Trajectory (트리에서 확정된 경로 조각).
+  - $q_s, q_g$: 시작 및 목표 지점.
+- <strong>Physical Meaning:</strong>
+  - 전체 경로 비용을 최소화하는 문제는 결국 "일련의 최적 Committed Trajectory 조각들을 순차적으로 찾아내는 문제"로 귀결된다. 이전 조각($\pi_{c, k-1}$)이 결정되어야 다음 조각($\pi_{c, k}$)을 최적화할 수 있는 <strong>순차적 의존성(Sequential Dependency)</strong>을 강조한다.</p>
+<p><strong>2. Network Loss Function (Classification + Regression):</strong>
+$$ Loss = \sum_{g \in G} \left( f_{ce}(g) L_{ce}(g) + f_{mse}(g) L_{mse}(g) \right) $$
+- <strong>Variable Definition:</strong>
+  - $L_{ce}$: Grid-wise Cross-Entropy Loss (해당 그리드가 경로에 포함될 확률).
+  - $L_{mse}$: Mean Squared Error (해당 그리드에서의 차량 방향 $cos\theta, sin\theta$).
+  - $f(g)$: Weighting Function (경로 위 그리드에 가중치 $w=20$ 부여).
+- <strong>Physical Meaning:</strong>
+  - <strong>위치 예측(Classification)</strong>과 <strong>방향 예측(Regression)</strong>을 동시에 수행한다. 특히, 대부분의 공간이 빈 공간(Empty)인 OGM(Occupancy Grid Map) 특성을 고려하여, 실제 경로가 존재하는 그리드에 높은 가중치($f(g)$)를 두어 학습 불균형(Class Imbalance)을 해소하고 수렴을 가속화한다.</p>
+<hr />
+<h3 id="3-execution-pipeline">3. 실행 파이프라인 및 데이터 흐름 (Execution Pipeline)</h3>
+<p><strong>입력 명세 (Input Context):</strong>
+- <strong>Local Map:</strong> 5-Channel Grid Map (Occupied, Unknown, Root, Goal, Current $\pi_c$).
+- <strong>State:</strong> Vehicle Pose $(x, y, \theta)$.</p>
+<p><strong>순전파 로직 (Forward Propagation with Anytime Planning):</strong></p>
+<ol>
+<li>
+<p><strong>Initial Planning Phase:</strong></p>
+<ul>
+<li><strong>Prediction:</strong> Start Node($q_{start}$)와 Goal($q_g$)을 입력받아 첫 번째 구간 분포 $\mu_{c,1}$ 예측.</li>
+<li><strong>Sampling:</strong> $N_{bias}$ (Learned Distribution) + $N_{uni}$ (Uniform) 샘플링.</li>
+<li><strong>Tree Expansion:</strong> RRT*를 통해 트리 확장 및 초기 경로 생성.</li>
+</ul>
+</li>
+<li>
+<p><strong>Iterative Planning Phase (Loop):</strong></p>
+<ul>
+<li><strong>Commit:</strong> 일정 시간($\pi_{c,k}$0) 후, 현재 트리의 Best Path 중 첫 번째 엣지를 $\pi_{c,k}$1로 확정(Commit)하고 차량 이동 시작.</li>
+<li><strong>Next Prediction:</strong> 차량이 $\pi_{c,k}$2을 따라가는 동안, 네트워크는 <strong>다음 구간($\pi_{c,k}$3)</strong>의 분포 $\pi_{c,k}$4를 미리 예측.</li>
+<li><strong>Refinement:</strong> 예측된 $\pi_{c,k}$5를 중심으로 샘플링을 집중하여 다음 경로 최적화.</li>
+<li><strong>Repeat:</strong> 목표 도달 시까지 반복.</li>
+</ul>
+</li>
+</ol>
+<p><strong>Data Augmentation Strategy:</strong>
+- 하나의 긴 최적 경로(Whole Path)를 여러 개의 Committed Trajectory 조각으로 쪼개어 학습 데이터를 증강함.
+- <strong>Effect:</strong> 동일한 맵/목표에서도 다양한 시작점(Root)과 중간 경로 상황을 학습하게 되어, 네트워크가 다양한 부분 경로 상황에 강건(Robust)해짐.</p>
+<hr />
+<h3 id="4-optimization-dynamics">4. 학습 메커니즘 및 최적화 (Optimization Dynamics)</h3>
+<p><strong>학습 전략 (Training Dynamics):</strong>
+- <strong>Lightweight Architecture:</strong>
+  - 기존 모델 대비 채널 수를 1/4로 줄인 경량 CNN 사용.
+  - <strong>Reason:</strong> 통신 및 제어 루프(약 20ms) 내에서 추론과 샘플링을 모두 끝내야 하므로, 정확도보다 <strong>실시간 추론 속도</strong>가 최우선.
+- <strong>Result:</strong> 추론 + 100개 샘플 추출에 <strong>20ms 미만</strong> 소요.</p>
+<p><strong>알고리즘 비교 (Performance gains):</strong>
+- <strong>vs Hierarchical (Plan-then-Execute):</strong> 멈춰서 계획할 필요가 없어 주행 시간 대폭 단축.
+- <strong>vs Whole-Path Prediction:</strong>
+  - 복잡한 교차 구간(Switching back and forth)에서 전체 경로 예측은 실패할 확률이 높음.
+  - 본 방식은 구간별로 쪼개서 예측하므로 복잡한 조작이 필요한 주차 시나리오(S6~S10)에서 <strong>시간을 최대 30초 단축</strong>.</p>
+<hr />
+<h3 id="5-details-constraints">5. 구현 상세 및 제약 사항 (Details &amp; Constraints)</h3>
+<p><strong>테스트 환경 (Environment Spec):</strong>
+- <strong>Simulator:</strong> CARLA (Unstructured Parking Scenarios).
+- <strong>Controller:</strong> Kanayama Controller ($\pi_{c,k}$6 Loop).
+- <strong>Steer Function:</strong> Hybrid Curvature (Non-holonomic 제약 고려).</p>
+<p><strong>시스템 한계 (Limitations):</strong>
+- <strong>Dynamic Obstacles:</strong> 정적 장애물 중심의 실험. 움직이는 장애물에 대한 반응성은 추가 검증 필요.
+- <strong>Map Dependency:</strong> 사전에 정의된 Grid Map 해상도(0.2m/px)에 의존적. 해상도가 바뀌면 재학습 필요 가능성.</p>
+<hr />
+<h3 id="6-industrial-application">6. 산업 적용 전략 (Industrial Application)</h3>
+<p><strong>Target Industry:</strong>
+- <strong>Autonomous Valet Parking (AVP):</strong> 좁고 복잡한 주차장에서 정밀하고 신속한 경로 생성이 필수적인 분야.
+- <strong>Logistics Robots (AMR):</strong> 물류센터 내에서 예상치 못한 장애물을 피해 최단 거리로 이동해야 하는 로봇.</p>
+<p><strong>Business Value:</strong>
+- <strong>Time Saving:</strong> 주차 시간 38% 단축 $\pi_{c,k}$7 서비스 회전율 증가.
+- <strong>Smoothness:</strong> 정지 후 재계획(Stop-and-Go)이 아닌 연속적인 주행으로 승객 경험(Ride Comfort) 향상.</p>
+<hr />
+        <hr>
+        <p style="text-align: center; font-size: 0.8rem; color: #888;">
+            Generated by <b>Antigravity AI Assistant</b> on 2026-02-16 18:57:58
+        </p>
+    </div>
+</body>
+</html>

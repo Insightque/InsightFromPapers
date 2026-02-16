@@ -1,0 +1,13 @@
+{
+    "title": "Preference Conditioned Multi-Objective Reinforcement Learning: Decomposed, Diversity-Driven Policy Optimization",
+    "description": "Decomposed, Diversity-Driven Policy Optimization (D3PO): A single-policy MORL framework that prevents gradient interference and mode collapse via Late-Stage Weighting and Diversity Regularization.",
+    "date": "2026-02-16",
+    "badges": [
+        "RL",
+        "Multi-Objective",
+        "Continuous Control"
+    ],
+    "badge_class": "badge-rl",
+    "report_file": "Preference_Conditioned_Multi_Objective_Reinforcement_Learning_Decomposed_Diversity_Driven_Policy_Optimization_논문_분석_보고서.html",
+    "paper_file": "Preference_Conditioned_Multi_Objective_Reinforcement_Learning_Decomposed_Diversity_Driven_Policy_Optimization_paper.pdf"
+}

@@ -1,0 +1,215 @@
+
+import sys
+import os
+import markdown
+import codecs
+from datetime import datetime
+
+HTML_TEMPLATE = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{title} - Analysis Report</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;1,300&family=Pretendard:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- MathJax Configuration -->
+    <script>
+    MathJax = {{
+      tex: {{
+        inlineMath: [['$', '$'], ['\\\\(', '\\\\)']],
+        displayMath: [['$$', '$$'], ['\\\\[', '\\\\]']],
+        processEscapes: true
+      }},
+      options: {{
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+      }}
+    }};
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    
+    <style>
+        :root {{
+            --bg-color: #ffffff;
+            --text-color: #333333;
+            --heading-color: #111111;
+            --link-color: #0066cc;
+            --code-bg: #f5f5f5;
+            --border-color: #eaeaea;
+            --quote-border: #0066cc;
+            --table-header-bg: #f8f9fa;
+        }}
+
+        @media (prefers-color-scheme: dark) {{
+            :root {{
+                --bg-color: #1a1a1a;
+                --text-color: #e0e0e0;
+                --heading-color: #ffffff;
+                --link-color: #66b3ff;
+                --code-bg: #2d2d2d;
+                --border-color: #444444;
+                --quote-border: #66b3ff;
+                --table-header-bg: #333333;
+            }}
+        }}
+
+        body {{
+            font-family: 'Merriweather', serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.8;
+            margin: 0;
+            padding: 2rem;
+            transition: background-color 0.3s, color 0.3s;
+        }}
+
+        .container {{
+            max-width: 800px;
+            margin: 0 auto;
+            padding-bottom: 5rem;
+        }}
+
+        h1, h2, h3, h4, h5, h6 {{
+            font-family: 'Pretendard', sans-serif;
+            color: var(--heading-color);
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }}
+
+        h1 {{ font-size: 2.5rem; border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem; }}
+        h2 {{ font-size: 1.8rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.3rem; }}
+        h3 {{ font-size: 1.4rem; }}
+
+        a {{ color: var(--link-color); text-decoration: none; }}
+        a:hover {{ text-decoration: underline; }}
+
+        code {{
+            font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+            background-color: var(--code-bg);
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }}
+
+        pre {{
+            background-color: var(--code-bg);
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            border: 1px solid var(--border-color);
+        }}
+        
+        pre code {{
+            background-color: transparent;
+            padding: 0;
+        }}
+
+        blockquote {{
+            margin: 1.5rem 0;
+            padding-left: 1rem;
+            border-left: 4px solid var(--quote-border);
+            color: var(--text-color);
+            font-style: italic;
+            opacity: 0.9;
+        }}
+
+        table {{
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+        }}
+
+        th, td {{
+            border: 1px solid var(--border-color);
+            padding: 0.75rem;
+            text-align: left;
+        }}
+
+        th {{
+            background-color: var(--table-header-bg);
+            font-weight: 600;
+        }}
+        
+        img {{
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }}
+
+        hr {{
+            border: 0;
+            border-top: 1px solid var(--border-color);
+            margin: 2rem 0;
+        }}
+
+        /* Print Style */
+        @media print {{
+            body {{ 
+                background-color: white; 
+                color: black; 
+                font-family: serif;
+            }}
+            .container {{ 
+                max-width: 100%; 
+                padding: 0;
+            }}
+            a {{ text-decoration: none; color: black; }}
+        }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>기술 백서: {title}</h1>
+        {content}
+        <hr>
+        <p style="text-align: center; font-size: 0.8rem; color: #888;">
+            Generated by <b>Antigravity AI Assistant</b> on {date}
+        </p>
+    </div>
+</body>
+</html>
+"""
+
+def generate_report(md_path, html_path, title):
+    if not os.path.exists(md_path):
+        print(f"Error: Markdown file not found at {md_path}")
+        return
+
+    with codecs.open(md_path, 'r', encoding='utf-8') as f:
+        md_content = f.read()
+
+    # Convert Markdown to HTML
+    html_content = markdown.markdown(
+        md_content,
+        extensions=['fenced_code', 'tables', 'nl2br', 'sane_lists']
+    )
+
+    # Fill template
+    final_html = HTML_TEMPLATE.format(
+        title=title,
+        content=html_content,
+        date=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    )
+
+    with codecs.open(html_path, 'w', encoding='utf-8') as f:
+        f.write(final_html)
+    
+    print(f"Successfully generated HTML report at {html_path}")
+
+if __name__ == "__main__":
+    if len(sys.argv) < 3:
+        print("Usage: python3 generate_web_report.py <md_path> <html_path> [title]")
+        sys.exit(1)
+    
+    md_path = sys.argv[1]
+    html_path = sys.argv[2]
+    title = sys.argv[3] if len(sys.argv) > 3 else "Analysis Report"
+    
+    generate_report(md_path, html_path, title)

@@ -1,0 +1,15 @@
+{
+    "title": "Interpretability by Design for Efficient Multi-Objective Reinforcement Learning",
+    "description": "LLE-MORL 알고리즘을 제안하여 다중 목적 강화학습(MORL)에서 파라미터 공간과 성능 공간의 국소적 선형 관계(PPR)를 활용, 효율적으로 파레토 프런트(Pareto Front)를 탐색하고 해석 가능성을 높인 연구입니다.",
+    "date": "2026-02-16",
+    "badges": [
+        "Interpretability",
+        "MORL",
+        "Efficiency",
+        "PPO",
+        "Pareto Front"
+    ],
+    "badge_class": "badge-rl",
+    "report_file": "Interpretability_by_Design_for_Efficient_Multi_Objective_Reinforcement_Learning_논문_분석_보고서.html",
+    "paper_file": "Interpretability_by_Design_for_Efficient_Multi_Objective_Reinforcement_Learning_paper.pdf"
+}

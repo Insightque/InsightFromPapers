@@ -1,47 +1,22 @@
 import sys
-import os
-import subprocess
+from pypdf import PdfReader
 
-def install(package):
-    subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+if len(sys.argv) < 3:
+    print("Usage: python3 extract_text.py <pdf_file> <output_txt_file>")
+    sys.exit(1)
+
+pdf_file = sys.argv[1]
+output_file = sys.argv[2]
 
 try:
-    from pypdf import PdfReader
-except ImportError:
-    try:
-        from PyPDF2 import PdfReader
-    except ImportError:
-        # Try to install pypdf
-        print("Installing pypdf...")
-        try:
-            install("pypdf")
-            from pypdf import PdfReader
-        except Exception as e:
-            print(f"Error installing pypdf: {e}")
-            sys.exit(1)
-
-def extract_text(pdf_path):
-    try:
-        reader = PdfReader(pdf_path)
-        text = ""
-        # Limit to 20 pages max
-        num_pages = len(reader.pages)
-        print(f"DEBUG: Processing {num_pages} pages...")
-        for i, page in enumerate(reader.pages[:20]): 
-            text += f"\n--- Page {i+1} ---\n"
-            text += page.extract_text()
-        return text
-    except Exception as e:
-        return f"Error reading PDF: {e}"
-
-if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Usage: python3 extract_text.py <pdf_path>")
-        sys.exit(1)
+    reader = PdfReader(pdf_file)
+    text = ""
+    for page in reader.pages:
+        text += page.extract_text() + "\n"
     
-    pdf_path = sys.argv[1]
-    if not os.path.exists(pdf_path):
-        print(f"Error: File not found at {pdf_path}")
-        sys.exit(1)
-        
-    print(extract_text(pdf_path))
+    with open(output_file, "w", encoding="utf-8") as f:
+        f.write(text)
+    print(f"Successfully extracted text to {output_file}")
+except Exception as e:
+    print(f"Error extracting text: {e}")
+    sys.exit(1)

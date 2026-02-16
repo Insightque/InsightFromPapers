@@ -1,0 +1,11 @@
+{
+    "title": "attention is all you need",
+    "description": "트랜스포머는 RNN/CNN의 순차적 연산 한계를 Self-Attention으로 극복, 모든 단어 관계를 병렬 처리하여 연산 속도 및 장거리 의존성 모델링 성능을 향상시킨 Sequence-to-Sequence 모델입니다. (Self-Attention으로 병렬화, 장거리 의존성 해결)",
+    "date": "2026-02-16",
+    "badges": [
+        "RL"
+    ],
+    "badge_class": "badge-rl",
+    "report_file": "attention_is_all_you_need_논문_분석_보고서.html",
+    "paper_file": ""
+}

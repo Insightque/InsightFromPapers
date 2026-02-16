@@ -1,17 +1,26 @@
+#!/usr/bin/env python3
+"""
+웹 리포트 생성기 (Markdown to HTML)
+- MathJax Latex Rendering 지원
+- 가독성 최적화 CSS 적용
+- 다크 모드 지원 (시스템 테마 연동)
 
+사용법:
+python3 generate_web_report.py <input.md> <output.html>
+"""
 import sys
 import os
+import re
 import markdown
-import codecs
-from datetime import datetime
 
+# HTML 템플릿 (CSS/JS 내부의 중괄호는 {{ }}로 이스케이프 처리)
 HTML_TEMPLATE = """
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{title} - Analysis Report</title>
+    <title>{title}</title>
     
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -59,7 +68,7 @@ HTML_TEMPLATE = """
         }}
 
         body {{
-            font-family: 'Merriweather', serif;
+            font-family: 'Merriweather', serif; /* 본문은 Serif로 가독성 확보 */
             background-color: var(--bg-color);
             color: var(--text-color);
             line-height: 1.8;
@@ -69,13 +78,13 @@ HTML_TEMPLATE = """
         }}
 
         .container {{
-            max-width: 800px;
+            max-width: 800px; /* 적절한 폭 제한 */
             margin: 0 auto;
             padding-bottom: 5rem;
         }}
 
         h1, h2, h3, h4, h5, h6 {{
-            font-family: 'Pretendard', sans-serif;
+            font-family: 'Pretendard', sans-serif; /* 헤딩은 Sans-serif */
             color: var(--heading-color);
             margin-top: 2rem;
             margin-bottom: 1rem;
@@ -166,7 +175,6 @@ HTML_TEMPLATE = """
 </head>
 <body>
     <div class="container">
-        <h1>기술 백서: {title}</h1>
         {content}
         <hr>
         <p style="text-align: center; font-size: 0.8rem; color: #888;">
@@ -177,76 +185,78 @@ HTML_TEMPLATE = """
 </html>
 """
 
+def convert_markdown_to_html(input_file, output_file):
+    if not os.path.exists(input_file):
+        print(f"Error: File '{input_file}' not found.")
+        sys.exit(1)
 
-import re
-
-
-def protect_math(text):
-    """
-    Replaces math blocks with placeholders to prevent Markdown parsing.
-    Returns the protected text and a dictionary of placeholders to original math.
-    """
-    math_content = {}
-    
-    # Function to replace and store match
-    def replace(match):
-        key = f"MATHBLOCK{len(math_content)}X"
-        math_content[key] = match.group(0)
-        return key
-
-    # Protect $$...$$ (Display Math) - allow multiline
-    text = re.sub(r'(?ms)\$\$[^\$]+\$\$', replace, text)
-    
-    # Protect $...$ (Inline Math) - match non-greedy, no multiline usually for inline
-    text = re.sub(r'(?<!\$)\$(?!\$)[^\$]+\$(?!\$)', replace, text)
-    
-    return text, math_content
-
-def restore_math(text, math_content):
-    """Restores math blocks from placeholders."""
-    for key, value in math_content.items():
-        text = text.replace(key, value)
-    return text
-
-def generate_report(md_path, html_path, title):
-    if not os.path.exists(md_path):
-        print(f"Error: Markdown file not found at {md_path}")
-        return
-
-    with codecs.open(md_path, 'r', encoding='utf-8') as f:
+    print(f"Reading {input_file}...")
+    with open(input_file, 'r', encoding='utf-8') as f:
         md_content = f.read()
 
-    # Protect Math
-    protected_content, math_store = protect_math(md_content)
-
-    # Convert Markdown to HTML
-    html_content = markdown.markdown(
-        protected_content,
-        extensions=['fenced_code', 'tables', 'nl2br', 'sane_lists']
-    )
-
-    # Restore Math
-    html_content = restore_math(html_content, math_store)
-
-    # Fill template
-    final_html = HTML_TEMPLATE.format(
-        title=title,
-        content=html_content,
-        date=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    )
-
-    with codecs.open(html_path, 'w', encoding='utf-8') as f:
-        f.write(final_html)
+    # Pre-processing: Math Blocks Protection
+    # Markdown 파서가 $...$ 수식을 오해석하지 않도록 보호
+    # 수식 블록 전체를 임시 토큰(PLACEHOLDER)으로 대체하고, 변환 후 복원하는 방식 사용
     
-    print(f"Successfully generated HTML report at {html_path}")
+    math_placeholders = {}
+    
+    def protect_math(text):
+        counter = [0]
+        
+        # $$ ... $$ Block Math
+        def replace_block(match):
+            token = f"MATH_BLOCK_{counter[0]}"
+            math_placeholders[token] = match.group(0)
+            counter[0] += 1
+            return token
+        
+        # DOTALL for multiline blocks
+        text = re.sub(r'\$\$(.*?)\$\$', replace_block, text, flags=re.DOTALL)
+        
+        # $ ... $ Inline Math
+        def replace_inline(match):
+            token = f"MATH_INLINE_{counter[0]}"
+            math_placeholders[token] = match.group(0)
+            counter[0] += 1
+            return token
+        
+        # Avoid matching empty $$
+        text = re.sub(r'\$([^$\n]+)\$', replace_inline, text)
+        return text
+
+    md_content = protect_math(md_content)
+
+    # Convert to HTML
+    print("Converting Markdown to HTML...")
+    html_body = markdown.markdown(md_content, extensions=['fenced_code', 'tables', 'toc'])
+
+    # Post-processing: Restore Math
+    # Markdown 파서가 p태그 등으로 감쌀 수 있으므로, 단순 replace로 복원
+    # 단, MathJax가 인식할 수 있도록 원래 수식 텍스트 그대로 복원
+    for token, original in math_placeholders.items():
+        html_body = html_body.replace(token, original)
+
+    # Get Title (First H1)
+    title_match = re.search(r'<h1>(.*?)</h1>', html_body)
+    title = title_match.group(1) if title_match else "Analysis Report"
+    
+    # Remove HTML tags from title for <title> tag
+    clean_title = re.sub('<[^<]+?>', '', title)
+
+    from datetime import datetime
+    date_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    final_html = HTML_TEMPLATE.format(title=clean_title, content=html_body, date=date_str)
+
+    print(f"Writing to {output_file}...")
+    with open(output_file, 'w', encoding='utf-8') as f:
+        f.write(final_html)
+
+    print("Success!")
 
 if __name__ == "__main__":
     if len(sys.argv) < 3:
-        print("Usage: python3 generate_web_report.py <md_path> <html_path> [title]")
+        print("Usage: python3 generate_web_report.py <input.md> <output.html>")
         sys.exit(1)
     
-    md_path = sys.argv[1]
-    html_path = sys.argv[2]
-    title = sys.argv[3] if len(sys.argv) > 3 else "Analysis Report"
-    
-    generate_report(md_path, html_path, title)
+    convert_markdown_to_html(sys.argv[1], sys.argv[2])

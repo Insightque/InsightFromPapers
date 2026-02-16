@@ -1,0 +1,14 @@
+{
+    "title": "Hindsight Preference Replay Improves Preference-Conditioned Multi-Objective Reinforcement Learning",
+    "description": "Multi-Objective RL에서 수집된 데이터를 모든 선호도에 대해 재사용할 수 있게 하는 Hindsight Preference Replay(HPR) 제안. CAPQL 대비 향상된 샘플 효율성과 더 넓은 Pareto Front 형성 확인.",
+    "date": "2026-02-16",
+    "badges": [
+        "MORL",
+        "RL",
+        "Preference",
+        "Hindsight"
+    ],
+    "badge_class": "badge-ai",
+    "report_file": "Hindsight_Preference_Replay_Improves_Preference_Conditioned_Multi_Objective_Reinforcement_Learning_논문_분석_보고서.html",
+    "paper_file": "Hindsight_Preference_Replay_Improves_Preference_Conditioned_Multi_Objective_Reinforcement_Learning_paper.pdf"
+}
